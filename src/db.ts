@@ -50,4 +50,10 @@ export class Database extends PrismaClient {
       where: { userId }
     })
   }
+
+  async removeAllAlerts(userId: number) {
+    return this.alert.deleteMany({
+      where: { userId }
+    })
+  }
 }

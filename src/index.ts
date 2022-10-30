@@ -51,7 +51,7 @@ const main = async () => {
   bot.command('listalerts', ctx => handleListAlerts(ctx))
   bot.command('editalert', ctx => ctx.reply('edit alert selected!'))
   bot.command('cancelalert', ctx => ctx.reply('cancel alert selected!'))
-  bot.command('cancelall', ctx => ctx.reply('cancel all alerts selected!'))
+  bot.command('cancelall', ctx => handleCancelAll(ctx))
 
   try {
     await bot.launch()
@@ -133,6 +133,19 @@ const handleListAlerts = async (
       list += line
     }
     ctx.replyWithHTML(list)
+  }
+}
+
+const handleCancelAll = async (
+  ctx: NarrowedContext<Context, Update.MessageUpdate>
+) => {
+  const user = await getUser(ctx)
+  if (user) {
+    const { count } = await db.removeAllAlerts(user.id)
+    if (count === 0) return await ctx.reply('You had no alerts to remove')
+    const msg = count === 1 ?
+      'One alert was removed' : `${count} alerts were removed`
+    await ctx.reply(msg)
   }
 }
 
