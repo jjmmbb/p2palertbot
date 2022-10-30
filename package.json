@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:up": "docker compose up p2palertbot-db -d",
+    "dev:rm": "docker compose rm p2palertbot-db -s -f -v",
     "build": "tsc",
     "prestart": "npm run build",
     "start": "node build/index.js"

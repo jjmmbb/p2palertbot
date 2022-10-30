@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  p2palertbot-db:
+    container_name: 'p2palertbot'
+    image: mysql:8.0.31
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 'WY7y55RF87LTGGPVVgBFUAu'
+    ports:
+      - '3309:3306'
+    volumes:
+      - p2palertbot:/var/lib/mysql
+volumes:
+  p2palertbot:
