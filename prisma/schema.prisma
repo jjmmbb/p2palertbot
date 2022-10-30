@@ -29,6 +29,8 @@ model Alert {
   currency        String
   priceDelta      Float
   orderType       OrderType
+
+  @@unique([userId, currency, orderType])
 }
 
 model Subscription {
