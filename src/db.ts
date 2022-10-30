@@ -44,4 +44,10 @@ export class Database extends PrismaClient {
       where: {userId, currency, orderType}
     })
   }
+
+  async findAlertsByUser(userId: number) {
+    return this.alert.findMany({
+      where: { userId }
+    })
+  }
 }

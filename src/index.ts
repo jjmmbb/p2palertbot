@@ -3,7 +3,7 @@ dotenv.config()
 import { Context, Telegraf, NarrowedContext } from 'telegraf'
 import { Update } from 'typegram/update'
 import { Database } from './db'
-import { OrderType } from '@prisma/client'
+import { OrderType, User } from '@prisma/client'
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const CURRENCIES = [
@@ -48,7 +48,7 @@ const main = async () => {
     const { update: { message: { text, entities }}} = ctx
     handleAddAlert(ctx, text.split(' '))
   })
-  bot.command('listalerts', ctx => ctx.reply('list alerts selected!'))
+  bot.command('listalerts', ctx => handleListAlerts(ctx))
   bot.command('editalert', ctx => ctx.reply('edit alert selected!'))
   bot.command('cancelalert', ctx => ctx.reply('cancel alert selected!'))
   bot.command('cancelall', ctx => ctx.reply('cancel all alerts selected!'))
@@ -62,6 +62,18 @@ const main = async () => {
   // Enable graceful stop
   process.once('SIGINT', () => bot.stop('SIGINT'))
   process.once('SIGTERM', () => bot.stop('SIGTERM'))
+}
+
+const getUser = async (
+  ctx: NarrowedContext<Context, Update.MessageUpdate>
+) : Promise<User | null> => {
+  const { update: { message: { from: { id } } } } = ctx
+  const user = await db.findUser(BigInt(id))
+  if (!user) {
+    await ctx.reply('This is weird, it seems we have not been introduced yet!')
+    await ctx.reply('Please type /start')
+  }
+  return user
 }
 
 const handleAddAlert = async (
@@ -87,11 +99,8 @@ const handleAddAlert = async (
     return ctx.reply('Invalid <order_type>. Must be either BUY or SELL')
   }
   const { update: { message: { from: { id } } } } = ctx
-  const user = await db.findUser(BigInt(id))
-  if (!user) {
-    await ctx.reply('This is weird, it seems we have not been introduced yet!')
-    return await ctx.reply('Please type /start')
-  }
+  const user = await getUser(ctx)
+  if (!user) return
   const orderType = orderTypeStr.toUpperCase() === OrderType.BUY
     ? OrderType.BUY : OrderType.SELL
   try {
@@ -107,6 +116,24 @@ const handleAddAlert = async (
   }
   const position = orderType === OrderType.BUY ? 'above' : 'below'
   ctx.reply(`Perfect! I\'ll let you know whenever a ${orderType} order on ${currency} with price ${position} ${priceDelta}% is posted`)
+}
+
+const handleListAlerts = async (
+  ctx: NarrowedContext<Context, Update.MessageUpdate>
+) => {
+  const user = await getUser(ctx)
+  if (user) {
+    const alerts = await db.findAlertsByUser(user.id)
+    let list = ' <b>**List of programmed alerts**</b> \n'
+    for(const alert of alerts) {
+      const { id, currency, priceDelta, orderType } = alert
+      const flag = orderType === OrderType.BUY ? '🟢' : '🔴'
+      const direction = orderType === OrderType.BUY ? '⬆️': '⬇️'
+      const line = `<b>${id})</b> ${flag} ${orderType.toUpperCase()}, ${direction} ${priceDelta}% market price, in ${currency.toUpperCase()}\n`
+      list += line
+    }
+    ctx.replyWithHTML(list)
+  }
 }
 
 main()
