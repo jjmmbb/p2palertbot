@@ -50,7 +50,10 @@ const main = async () => {
   })
   bot.command('listalerts', ctx => handleListAlerts(ctx))
   bot.command('editalert', ctx => ctx.reply('edit alert selected!'))
-  bot.command('cancelalert', ctx => ctx.reply('cancel alert selected!'))
+  bot.command('cancelalert', ctx => {
+    const { update: { message: { text } } } = ctx
+    handleCancelAlert(ctx, text.split(' '))
+  })
   bot.command('cancelall', ctx => handleCancelAll(ctx))
 
   try {
@@ -84,7 +87,7 @@ const handleAddAlert = async (
     await ctx.reply('Invalid arguments, expects: /addalert <currency> <price_delta> <order_type>')
     await ctx.reply('Ex: /addalert USD 5 BUY')
     return await ctx.reply('☝️ Sets an alert for buy orders with more than 5% of premium')
-  } 
+  }
   const [cmd, currency, priceDeltaStr, orderTypeStr] = args
   const priceDelta = parseFloat(priceDeltaStr)
   if (priceDelta === NaN) {
@@ -146,6 +149,38 @@ const handleCancelAll = async (
     const msg = count === 1 ?
       'One alert was removed' : `${count} alerts were removed`
     await ctx.reply(msg)
+  }
+}
+
+const handleCancelAlert = async (
+  ctx: NarrowedContext<Context, Update.MessageUpdate>,
+  args: string[]
+) => {
+  const user = await getUser(ctx)
+  if (user) {
+    if (args.length !== 2) {
+      await ctx.reply('Invalid arguments, expects: /cancelalert <alert_id>')
+      await ctx.reply('Ex: /addalert 2')
+      return await ctx.reply('You can find all alert ids with /listalerts')
+    }
+  }
+  const [ cmd, alertIdStr ] = args
+  const alertId = parseInt(alertIdStr)
+  if (alertId === NaN) {
+    return await ctx.reply('Invalid alert id')
+  }
+  let alert = db.findAlertById(alertId)
+  try {
+    if (alert !== null) {
+      await db.removeAlertById(alertId)
+      return await ctx.reply(`Removed alert with id ${alertId}`)
+    } else {
+      return await ctx.reply(
+        `Could not remove, no alert was found with id ${alertId}`
+      )
+    }
+  } catch(err) {
+    console.error('Error while removing alert. err: ', err)
   }
 }
 

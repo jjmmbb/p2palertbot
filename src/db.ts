@@ -51,9 +51,21 @@ export class Database extends PrismaClient {
     })
   }
 
+  async findAlertById(id: number) {
+    return this.alert.findUnique({
+      where: { id }
+    })
+  }
+
   async removeAllAlerts(userId: number) {
     return this.alert.deleteMany({
       where: { userId }
+    })
+  }
+
+  async removeAlertById(id: number) {
+    return this.alert.delete({
+      where: { id }
     })
   }
 }
