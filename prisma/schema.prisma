@@ -20,6 +20,7 @@ model User {
   telegramId      BigInt        @unique
   alert           Alert[]
   subscription    Subscription?
+  deliveries      Delivery[]
 }
 
 model Alert {
@@ -29,6 +30,7 @@ model Alert {
   currency        String
   priceDelta      Float
   orderType       OrderType
+  deliveries      Delivery[]
 
   @@unique([userId, currency, orderType])
 }
@@ -49,4 +51,13 @@ model Payment {
   subscriptionId  Int
   subscription    Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   amount          BigInt
+}
+
+model Delivery {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alertId         Int
+  alert           Alert         @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  date            DateTime
 }
