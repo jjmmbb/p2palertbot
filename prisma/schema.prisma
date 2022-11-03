@@ -18,6 +18,7 @@ enum OrderType {
 model User {
   id              Int           @id @default(autoincrement())
   telegramId      BigInt        @unique
+  chatId          BigInt
   alert           Alert[]
   subscription    Subscription?
   deliveries      Delivery[]
