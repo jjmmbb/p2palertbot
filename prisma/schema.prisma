@@ -61,7 +61,7 @@ model Delivery {
   alertId         Int
   alert           Alert         @relation(fields: [alertId], references: [id], onDelete: Cascade)
   orderId         Int
-  date            DateTime
+  date            DateTime      @default(now())
 
   @@unique([userId, orderId])
 }
