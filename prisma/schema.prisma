@@ -55,6 +55,7 @@ model Payment {
   amount          BigInt
   created         DateTime
   duration        Int
+  invoice         String
 }
 
 model Delivery {
