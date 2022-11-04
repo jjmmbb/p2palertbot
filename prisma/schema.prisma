@@ -20,7 +20,7 @@ model User {
   telegramId      BigInt        @unique
   chatId          BigInt
   alert           Alert[]
-  subscription    Subscription?
+  subscription    Subscription[]
   deliveries      Delivery[]
 }
 
@@ -38,11 +38,12 @@ model Alert {
 
 model Subscription {
   id              Int           @id @default(autoincrement())
-  userId          Int           @unique
+  userId          Int
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   created         DateTime
   duration        Int
   payment         Payment[]
+  isActive        Boolean       @default(false)
 }
 
 model Payment {
