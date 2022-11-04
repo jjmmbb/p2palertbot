@@ -55,7 +55,7 @@ model Payment {
   amount          BigInt
   created         DateTime
   duration        Int
-  invoice         String
+  invoice         String        @db.VarChar(1500)
 }
 
 model Delivery {
