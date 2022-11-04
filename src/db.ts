@@ -1,17 +1,27 @@
-import { PrismaClient, OrderType } from '@prisma/client'
+import { PrismaClient, OrderType, Delivery } from '@prisma/client'
 
 export class Database extends PrismaClient {
 
-  async findUser(telegramId: bigint) {
+  async findUserById(id: number) {
+    return this.user.findUnique({
+      where: { id }
+    })
+  }
+
+  async findUserByTelegramId(telegramId: bigint) {
     return this.user.findUnique({
       where: { telegramId }
     })
   }
 
-  async addUser(telegramId: bigint) {
+  async addUser(telegramId: bigint, chatId: bigint) {
     return this.user.create({
-      data: { telegramId }
+      data: { telegramId, chatId }
     })
+  }
+
+  async findAllUsers() {
+    return this.user.findMany({})
   }
 
   async addAlert(
@@ -66,6 +76,26 @@ export class Database extends PrismaClient {
   async removeAlertById(id: number) {
     return this.alert.delete({
       where: { id }
+    })
+  }
+
+  async addDelivery(
+    userId: number,
+    alertId: number,
+    orderId: string
+  ) {
+    return this.delivery.create({
+      data: { userId, alertId, orderId }
+    })
+  }
+
+  async findDelivery(
+    userId: number,
+    alertId: number,
+    orderId: string
+  ) : Promise<Delivery | null>  {
+    return this.delivery.findFirst({
+      where: { userId, alertId, orderId}
     })
   }
 }
