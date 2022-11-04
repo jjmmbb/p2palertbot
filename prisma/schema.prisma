@@ -47,7 +47,7 @@ model Subscription {
 
 model Payment {
   id              Int           @id @default(autoincrement())
-  preimage        String
+  preimage        String?
   paymentHash     String
   paid            Boolean       @default(false)
   subscriptionId  Int
