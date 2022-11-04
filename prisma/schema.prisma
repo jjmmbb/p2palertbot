@@ -53,6 +53,8 @@ model Payment {
   subscriptionId  Int
   subscription    Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   amount          BigInt
+  created         DateTime
+  duration        Int
 }
 
 model Delivery {
