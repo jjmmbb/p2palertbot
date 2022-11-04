@@ -43,7 +43,6 @@ model Subscription {
   created         DateTime      @default(now())
   duration        Int
   payment         Payment[]
-  isActive        Boolean       @default(false)
 }
 
 model Payment {
