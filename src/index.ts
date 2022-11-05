@@ -281,7 +281,8 @@ const handleSubscribe = async (
   const amount = 10
   const subscription = await db.createSubscription(user.id, subscriptionDuration)
   const memo = `subscription for user ${user.id}, good for ${subscriptionDuration} secs`
-  const { payment_hash, payment_request } = await paymentManager.createInvoice(amount, memo, '')
+  const { payment_hash, payment_request, error } = await paymentManager.createInvoice(amount, memo, '')
+  if (error) return await ctx.reply(error)
   const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
   if (!timestamp || !timeExpireDate) {
     return ctx.reply('Error: invalid invoice returned by provider, cannot proceed')

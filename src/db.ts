@@ -133,11 +133,34 @@ export class Database extends PrismaClient {
     })
   }
 
+  async getPendingPayments(
+    newer: Date
+  ) {
+    return this.payment.findMany({
+      where: {
+        paid: false,
+        created: {
+          gt: newer
+        }
+      }
+    })
+  }
+
   async findPaymentsBySubscription(
     subscriptionId: number
   ) : Promise<Payment[]> {
     return await this.payment.findMany({
       where: { subscriptionId: subscriptionId, paid: false}
+    })
+  }
+
+  async updatePayment(
+    id: number,
+    isPaid: boolean
+  ) {
+    return this.payment.update({
+      where: { id },
+      data: { paid: isPaid}
     })
   }
 }
