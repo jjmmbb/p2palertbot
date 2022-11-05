@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import { Database } from './db'
 // 3 minutes
-const INTERVAL = 5 * 1e3
+const INTERVAL = 60 * 3 * 1e3
 
 export interface Order {
   _id: string,
@@ -17,7 +17,7 @@ export class OrdersUpdater {
   private db: Database = new Database()
   private onNotification: OnNotificationEvent | undefined
   private id: NodeJS.Timer | null = null
-  private http: AxiosInstance | undefined
+  private http: AxiosInstance
 
   constructor() {
     this.http = axios.create({

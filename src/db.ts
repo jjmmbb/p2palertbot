@@ -1,4 +1,7 @@
-import { PrismaClient, OrderType, Delivery } from '@prisma/client'
+import { PrismaClient, OrderType, Delivery, Subscription, Payment } from '@prisma/client'
+
+// Unless said otherwise, a subscription good for 30 days
+export const DEFAULT_SUBSCRIPTION_DURATION = 30 * 24 * 60 * 60
 
 export class Database extends PrismaClient {
 
@@ -96,6 +99,45 @@ export class Database extends PrismaClient {
   ) : Promise<Delivery | null>  {
     return this.delivery.findFirst({
       where: { userId, alertId, orderId}
+    })
+  }
+
+  async findSubscriptionsByUserId(
+    userId: number
+  ) : Promise<Subscription[]> {
+    return this.subscription.findMany({
+      where: { userId }
+    })
+  }
+
+  async createSubscription(
+    userId: number,
+    duration: number = DEFAULT_SUBSCRIPTION_DURATION
+  ) : Promise<Subscription> {
+    return this.subscription.create({
+      data: { userId, duration },
+      include: { payment : true}
+    })
+  }
+
+  async createPayment(
+    amount: number,
+    paymentHash: string,
+    subscriptionId: number,
+    duration: number,
+    created: Date,
+    invoice: string
+  ) : Promise<Payment> {
+    return this.payment.create({
+      data: { paymentHash, subscriptionId, amount, duration, created, invoice }
+    })
+  }
+
+  async findPaymentsBySubscription(
+    subscriptionId: number
+  ) : Promise<Payment[]> {
+    return await this.payment.findMany({
+      where: { subscriptionId: subscriptionId, paid: false}
     })
   }
 }

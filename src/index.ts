@@ -4,8 +4,10 @@ import axios, { AxiosInstance } from 'axios'
 import { OrderType, User } from '@prisma/client'
 import { Context, Telegraf, NarrowedContext } from 'telegraf'
 import { Update } from 'typegram/update'
-import { Database } from './db'
+import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
+import { LnbitsPaymentManager } from './payment-manager'
+import * as bolt11 from 'bolt11'
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const CURRENCIES = [
@@ -23,10 +25,7 @@ const CURRENCIES = [
 const ORDER_TYPES = ['BUY', 'SELL']
 
 const db = new Database()
-
-const http = axios.create({
-  baseURL: process.env.LNP2PBOT_BASE_URL
-})
+const paymentManager = new LnbitsPaymentManager()
 
 const main = async () => {
   if (BOT_TOKEN === undefined) {
@@ -63,6 +62,11 @@ const main = async () => {
     handleCancelAlert(ctx, text.split(' '))
   })
   bot.command('cancelall', ctx => handleCancelAll(ctx))
+  bot.command('subscribe', ctx => {
+    const { update: { message: { text }}} = ctx
+    const args = text.split(' ')
+    handleSubscribe(ctx, args)
+  })
 
   try {
     await bot.launch()
@@ -230,6 +234,69 @@ const handleCancelAlert = async (
   } catch(err) {
     console.error('Error while removing alert. err: ', err)
   }
+}
+
+const handleSubscribe = async (
+  ctx: NarrowedContext<Context, Update.MessageUpdate>,
+  args: string[]
+) => {
+  const user = await getUser(ctx)
+  if (!user) {
+    return
+  }
+  let subscriptions = await db.findSubscriptionsByUserId(user.id)
+  if (subscriptions !== null) {
+    const activeSubscriptions = subscriptions
+      .filter(sub => sub.created.getTime() + sub.duration * 1e3 > Date.now())
+    if (activeSubscriptions.length === 1) {
+      const [ activeSubscription ] = activeSubscriptions
+      const payments = await db.findPaymentsBySubscription(activeSubscription.id)
+      const activePayments = payments
+        .filter(p => p.created.getTime() + p.duration * 1e3 > Date.now())
+      if (activePayments.length === 0) {
+        return await ctx.reply(`Would have created a new invoice for you`)
+      } else if (activePayments.length === 1) {
+        const [ activePayment ] = activePayments
+        const msg = `Please pay the following invoice: <code>${activePayment.invoice}</code>`
+        return await ctx.reply(msg, {parse_mode: 'HTML'})
+      } else {
+        return await ctx.reply(`User has ${activePayments.length} pending payments, this should not happen`)
+      }
+    } else if (activeSubscriptions.length > 1) {
+      return await ctx.reply(
+        'User has multiple active unpaid subscriptions, this should not happen'
+      )
+    }
+    // If not, there are subscriptions, but they are all expired
+    // in this case we allow the subscription creation to proceed
+  }
+  let subscriptionDuration = DEFAULT_SUBSCRIPTION_DURATION
+  if (args.length === 2) {
+    const days = parseInt(args[1])
+    if (isNaN(days)) {
+      return await ctx.reply('Wrong [duration] value. A duration must be specified in number of days')
+    }
+    subscriptionDuration = days * 60 * 60 * 24
+  }
+  const amount = 10
+  const subscription = await db.createSubscription(user.id, subscriptionDuration)
+  const memo = `subscription for user ${user.id}, good for ${subscriptionDuration} secs`
+  const { payment_hash, payment_request } = await paymentManager.createInvoice(amount, memo, '')
+  const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
+  if (!timestamp || !timeExpireDate) {
+    return ctx.reply('Error: invalid invoice returned by provider, cannot proceed')
+  }
+  const duration = timeExpireDate - timestamp
+  await db.createPayment(
+    amount,
+    payment_hash,
+    subscription.id,
+    duration,
+    new Date(timestamp * 1e3),
+    payment_request
+  )
+  const msg = `Please pay the following invoice: <code>${payment_request}</code>`
+  await ctx.reply(msg, {parse_mode: 'HTML'})
 }
 
 main()
