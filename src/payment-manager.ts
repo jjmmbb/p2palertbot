@@ -2,7 +2,9 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Database } from './db'
 import { AxiosClient } from './axios-client'
 
-const PAYMENT_CHECK_INTERVAL = 1e3 * 10
+// Polling every 5 minutes, as this ideally should be
+// just a backup. We should rely primarily on the webhook.
+const PAYMENT_CHECK_INTERVAL = 1e3 * 60 * 5
 
 export class LnbitsPaymentManager extends AxiosClient{
   private http: AxiosInstance

@@ -19,7 +19,8 @@ const CURRENCIES = [
   'CLP',
   'COL',
   'BTL',
-  'VES'
+  'VES',
+  'CUP'
 ]
 
 const ORDER_TYPES = ['BUY', 'SELL']

@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import { User } from '@prisma/client'
 import { Database } from './db'
 // 3 minutes
 const INTERVAL = 60 * 3 * 1e3
@@ -31,9 +32,6 @@ export class OrdersUpdater {
   }
 
   updateOrders = async () => {
-    if (!this.http) {
-      return console.log('http is undefined')
-    }
     const resp = await this.http.get('/orders')
     const { data } = resp
     const orders: Order[] = data
@@ -48,6 +46,14 @@ export class OrdersUpdater {
     // console.log('Fiat codes: ', fiatCodeMap.keys())
     const users = await this.db.findAllUsers()
     for (const user of users) {
+      // Checking if user's payment is up to date
+      const isSubscribed = await this.checkUserSubscription(user)
+      if (!isSubscribed) {
+        console.log(`Skipping user ${user.id} as it is not subscribed`)
+        continue
+      } else {
+        console.log(`Continue with user ${user.id} as it has an active subscription`)
+      }
       // Fetching all alerts of a user
       const alerts = await this.db.findAlertsByUser(user.id)
       for (const alert of alerts) {
@@ -82,5 +88,21 @@ export class OrdersUpdater {
         }
       }
     }
+  }
+
+  private async checkUserSubscription(user: User) : Promise<Boolean>{
+    let isSubscribed = false
+    const subscriptions = await this.db.findSubscriptionsByUserId(user.id)
+    for (const subscription of subscriptions) {
+      const { created, duration, id } = subscription
+      if (created.getTime() + duration * 1e3 > Date.now()) {
+        // Subscription can be active, checking for payments now
+        const payment = await this.db.findPaymentBySubscriptionId(id, true)
+        if (payment?.paid) {
+          isSubscribed = true
+        }
+      }
+    }
+    return isSubscribed
   }
 }

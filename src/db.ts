@@ -146,6 +146,17 @@ export class Database extends PrismaClient {
     })
   }
 
+  async findPaymentBySubscriptionId(
+    subscriptionId: number,
+    paid: boolean
+  ) : Promise<Payment | null> {
+    return this.payment.findFirst({
+      where: {
+        subscriptionId, paid
+      }
+    })
+  }
+
   async findPaymentsBySubscription(
     subscriptionId: number
   ) : Promise<Payment[]> {
