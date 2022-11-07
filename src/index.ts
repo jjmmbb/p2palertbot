@@ -1,12 +1,12 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
-import axios, { AxiosInstance } from 'axios'
 import { OrderType, User } from '@prisma/client'
 import { Context, Telegraf, NarrowedContext } from 'telegraf'
 import { Update } from 'typegram/update'
 import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
 import { LnbitsPaymentManager } from './payment-manager'
+import { WebhookListener, OnPaymentUpdated } from './webhook'
 import * as bolt11 from 'bolt11'
 
 const BOT_TOKEN = process.env.BOT_TOKEN
@@ -33,6 +33,31 @@ const main = async () => {
     console.log('BOT_TOKEN undefined')
     return
   }
+  const onPaymentUpdated: OnPaymentUpdated = (
+    paymentId: number,
+    userId: number,
+    isPaid: boolean
+  ) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const user = await db.findUserById(userId)
+        if (user?.telegramId) {
+          await bot.telegram.sendMessage(
+            user.telegramId.toString(),
+            'Great! payment detected! Your subscription is now active 😃'
+          )
+        }
+        resolve()
+      } catch(err) {
+        reject(err)
+      }
+    })
+  }
+
+  // Setting up the webhook listener
+  const webhook = new WebhookListener(onPaymentUpdated)
+  webhook.listen()
+
   const bot = new Telegraf(BOT_TOKEN)
   bot.start(async (ctx) => {
     ctx.update.message.chat.id
@@ -279,10 +304,15 @@ const handleSubscribe = async (
     }
     subscriptionDuration = days * 60 * 60 * 24
   }
-  const amount = 10
+  // TODO: Placeholder amount. Calculate this from subscription duration.
+  const amount = 1
   const subscription = await db.createSubscription(user.id, subscriptionDuration)
   const memo = `subscription for user ${user.id}, good for ${subscriptionDuration} secs`
-  const { payment_hash, payment_request, error } = await paymentManager.createInvoice(amount, memo, '')
+  const {
+    payment_hash,
+    payment_request,
+    error
+  } = await paymentManager.createInvoice(amount, memo)
   if (error) return await ctx.reply(error)
   const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
   if (!timestamp || !timeExpireDate) {

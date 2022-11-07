@@ -54,14 +54,14 @@ export class LnbitsPaymentManager extends AxiosClient{
 
   async createInvoice(
     amount: number,
-    memo: string,
-    webhook: string
+    memo: string
   ) {
     const data = {
       out: false,
-      amount: amount * 1e3,
-      unit: 'msats',
-      memo, webhook
+      amount: amount,
+      webhook: process.env.WEBHOOK_URL,
+      unit: 'sat',
+      memo
     }
     try {
       const resp = await this.http.post(`/api/v1/payments`, data, this.config)

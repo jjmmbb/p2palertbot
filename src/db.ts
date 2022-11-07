@@ -133,6 +133,17 @@ export class Database extends PrismaClient {
     })
   }
 
+  async findPaymentByHash(paymentHash: string) : Promise<Payment | null> {
+    return this.payment.findUnique({
+      where: {
+        paymentHash
+      },
+      include: {
+        subscription: true
+      }
+    })
+  }
+
   async getPendingPayments(
     newer: Date
   ) {
