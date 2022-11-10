@@ -1,13 +1,12 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
-import { OrderType, User } from '@prisma/client'
+import { OrderType, User, Subscription } from '@prisma/client'
 import { Context, Telegraf, NarrowedContext } from 'telegraf'
 import { Update } from 'typegram/update'
 import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
 import { LnbitsPaymentManager } from './payment-manager'
 import { WebhookListener, OnPaymentUpdated } from './webhook'
-import * as bolt11 from 'bolt11'
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const CURRENCIES = [
@@ -20,8 +19,11 @@ const CURRENCIES = [
   'COL',
   'BTL',
   'VES',
-  'CUP'
+  'CUP',
+  'PEN'
 ]
+
+const TEST_AMOUNT_SATS = 1
 
 const ORDER_TYPES = ['BUY', 'SELL']
 
@@ -262,6 +264,21 @@ const handleCancelAlert = async (
   }
 }
 
+const createPayment = async (
+  user: User,
+  amount: number,
+  subscription: Subscription,
+  ctx: NarrowedContext<Context, Update.MessageUpdate>
+) => {
+  const {
+    msg,
+    error
+  } = await paymentManager.createPayment(user, amount, subscription)
+  if (error) return await ctx.reply(error)
+  if (msg) return await ctx.reply(msg, {parse_mode: 'HTML'})
+  else return await ctx.reply('Unexpected result when trying to create payment')
+}
+
 const handleSubscribe = async (
   ctx: NarrowedContext<Context, Update.MessageUpdate>,
   args: string[]
@@ -275,13 +292,23 @@ const handleSubscribe = async (
     const activeSubscriptions = subscriptions
       .filter(sub => sub.created.getTime() + sub.duration * 1e3 > Date.now())
     if (activeSubscriptions.length === 1) {
+      // An active subscription is one that covers the current time,
+      // a user should only have 1 as subscriptions should not overlap.
       const [ activeSubscription ] = activeSubscriptions
       const payments = await db.findPaymentsBySubscription(activeSubscription.id)
+      const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
+      if (isPaid) {
+        // Active subscription is paid, user doesn't need any other payment
+        return await ctx.reply('Your subscription is active and paid')
+      }
       const activePayments = payments
         .filter(p => p.created.getTime() + p.duration * 1e3 > Date.now())
       if (activePayments.length === 0) {
-        return await ctx.reply(`Would have created a new invoice for you`)
+        const amount = TEST_AMOUNT_SATS
+        return await createPayment(user, amount, activeSubscription, ctx)
       } else if (activePayments.length === 1) {
+        // Same thing happens with payment, they should not overlap. So a user can only
+        // really have 0 or 1 pending payment for active subscription.
         const [ activePayment ] = activePayments
         const msg = `Please pay the following invoice: <code>${activePayment.invoice}</code>`
         return await ctx.reply(msg, {parse_mode: 'HTML'})
@@ -304,31 +331,10 @@ const handleSubscribe = async (
     }
     subscriptionDuration = days * 60 * 60 * 24
   }
-  // TODO: Placeholder amount. Calculate this from subscription duration.
-  const amount = 1
   const subscription = await db.createSubscription(user.id, subscriptionDuration)
-  const memo = `subscription for user ${user.id}, good for ${subscriptionDuration} secs`
-  const {
-    payment_hash,
-    payment_request,
-    error
-  } = await paymentManager.createInvoice(amount, memo)
-  if (error) return await ctx.reply(error)
-  const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
-  if (!timestamp || !timeExpireDate) {
-    return ctx.reply('Error: invalid invoice returned by provider, cannot proceed')
-  }
-  const duration = timeExpireDate - timestamp
-  await db.createPayment(
-    amount,
-    payment_hash,
-    subscription.id,
-    duration,
-    new Date(timestamp * 1e3),
-    payment_request
-  )
-  const msg = `Please pay the following invoice: <code>${payment_request}</code>`
-  await ctx.reply(msg, {parse_mode: 'HTML'})
+  // TODO: Placeholder amount. Calculate this from subscription duration.
+  const amount = TEST_AMOUNT_SATS
+  await createPayment(user, amount, subscription, ctx)
 }
 
 main()

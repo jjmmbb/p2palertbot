@@ -172,7 +172,7 @@ export class Database extends PrismaClient {
     subscriptionId: number
   ) : Promise<Payment[]> {
     return await this.payment.findMany({
-      where: { subscriptionId: subscriptionId, paid: false}
+      where: { subscriptionId: subscriptionId }
     })
   }
 

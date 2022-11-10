@@ -1,10 +1,17 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Database } from './db'
 import { AxiosClient } from './axios-client'
+import { User, Subscription } from '@prisma/client'
+import * as bolt11 from 'bolt11'
 
 // Polling every 5 minutes, as this ideally should be
 // just a backup. We should rely primarily on the webhook.
 const PAYMENT_CHECK_INTERVAL = 1e3 * 60 * 5
+
+export type PaymentCreationResponse = {
+  msg?: string,
+  error?: any
+}
 
 export class LnbitsPaymentManager extends AxiosClient{
   private http: AxiosInstance
@@ -52,10 +59,13 @@ export class LnbitsPaymentManager extends AxiosClient{
     }
   }
 
-  async createInvoice(
+  async createPayment(
+    user: User,
     amount: number,
-    memo: string
-  ) {
+    subscription: Subscription
+  ) : Promise<PaymentCreationResponse> {
+    const { duration } = subscription
+    const memo = `subscription for user ${user.id}, good for ${duration} secs`
     const data = {
       out: false,
       amount: amount,
@@ -66,7 +76,30 @@ export class LnbitsPaymentManager extends AxiosClient{
     try {
       const resp = await this.http.post(`/api/v1/payments`, data, this.config)
       if (resp.status === 201) {
-        return resp.data
+        // return resp.data
+        const {
+          payment_hash,
+          payment_request,
+          error
+        } = resp.data
+        if (error) return { error: error }
+        const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
+        if (!timestamp || !timeExpireDate) {
+          return {
+            error: 'Error: invalid invoice returned by provider, cannot proceed'
+          }
+        }
+        const duration = timeExpireDate - timestamp
+        await this.db.createPayment(
+          amount,
+          payment_hash,
+          subscription.id,
+          duration,
+          new Date(timestamp * 1e3),
+          payment_request
+        )
+        const msg = `Please pay the following invoice: <code>${payment_request}</code>`
+        return { msg }
       }
     } catch(err) {
       const msg = 'Error while trying to get invoice'
@@ -74,5 +107,6 @@ export class LnbitsPaymentManager extends AxiosClient{
       this.handleError(err)
       return { error: msg }
     }
+    return {}
   }
 }
