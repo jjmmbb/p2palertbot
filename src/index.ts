@@ -15,7 +15,7 @@ const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 const BOT_TOKEN = process.env.BOT_TOKEN
 const CURRENCIES = Object.values(fiat).map((f:any) => f.code)
 
-const TEST_AMOUNT_SATS = 1
+const TEST_AMOUNT_SATS = 10
 
 const ORDER_TYPES = ['BUY', 'SELL']
 
@@ -368,7 +368,8 @@ const handleSubscribe = async (
     if (isNaN(days)) {
       return await ctx.reply(ctx.t('wrong_duration'))
     }
-    subscriptionDuration = days * 60 * 60 * 24
+    // subscriptionDuration = days * 60 * 60 * 24 // TODO: Re-enable
+    subscriptionDuration = Math.max(days, 10) * 60 * 60 * 24
   }
   const subscription = await db.createSubscription(user.id, subscriptionDuration)
   // TODO: Placeholder amount. Calculate this from subscription duration.
