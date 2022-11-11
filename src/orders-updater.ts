@@ -59,7 +59,7 @@ export class OrdersUpdater {
           if (!o.price_from_api) {
             return false
           }
-          if (o.type === 'SELL') {
+          if (o.type.toUpperCase() === 'SELL') {
             return o.price_margin <= alert.priceDelta
           } else {
             return o.price_margin >= alert.priceDelta
