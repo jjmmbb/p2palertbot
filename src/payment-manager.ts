@@ -9,7 +9,7 @@ import * as bolt11 from 'bolt11'
 const PAYMENT_CHECK_INTERVAL = 1e3 * 60 * 5
 
 export type PaymentCreationResponse = {
-  msg?: string,
+  payment_request?: string,
   error?: any
 }
 
@@ -76,17 +76,19 @@ export class LnbitsPaymentManager extends AxiosClient{
     try {
       const resp = await this.http.post(`/api/v1/payments`, data, this.config)
       if (resp.status === 201) {
-        // return resp.data
         const {
           payment_hash,
           payment_request,
           error
         } = resp.data
-        if (error) return { error: error }
+        if (error) {
+          console.error('Invoice generation error: ', error)
+          return { error: 'error_invoice_generation' }
+        }
         const { timestamp, timeExpireDate } = bolt11.decode(payment_request)
         if (!timestamp || !timeExpireDate) {
           return {
-            error: 'Error: invalid invoice returned by provider, cannot proceed'
+            error: 'error_invalid_invoice'
           }
         }
         const duration = timeExpireDate - timestamp
@@ -98,14 +100,13 @@ export class LnbitsPaymentManager extends AxiosClient{
           new Date(timestamp * 1e3),
           payment_request
         )
-        const msg = `Please pay the following invoice: <code>${payment_request}</code>`
-        return { msg }
+        return { payment_request }
+      } else {
+        return { error: 'error_unexpected_response_code_create_invoice' }
       }
     } catch(err) {
-      const msg = 'Error while trying to get invoice'
-      console.error(msg)
       this.handleError(err)
-      return { error: msg }
+      return { error: 'error_payment_creation' }
     }
     return {}
   }

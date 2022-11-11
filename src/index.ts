@@ -1,12 +1,13 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 import { OrderType, User, Subscription } from '@prisma/client'
-import { Context, Telegraf, NarrowedContext } from 'telegraf'
-import { Update } from 'typegram/update'
+import { Telegraf } from 'telegraf'
+import { I18n } from '@grammyjs/i18n'
 import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
 import { LnbitsPaymentManager } from './payment-manager'
 import { WebhookListener, OnPaymentUpdated } from './webhook'
+import { BotContext } from './types'
 import fs from 'fs'
 const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 
@@ -19,6 +20,11 @@ const ORDER_TYPES = ['BUY', 'SELL']
 
 const db = new Database()
 const paymentManager = new LnbitsPaymentManager()
+const i18nConfig = {
+  directory: 'lang',
+  useSession: true,
+  defaultLocale: 'en'
+}
 
 const main = async () => {
   if (BOT_TOKEN === undefined) {
@@ -34,9 +40,10 @@ const main = async () => {
       try {
         const user = await db.findUserById(userId)
         if (user?.telegramId) {
+          const i18n = new I18n(i18nConfig)
           await bot.telegram.sendMessage(
             user.telegramId.toString(),
-            'Great! payment detected! Your subscription is now active 😃'
+            i18n.t('es', 'payment_detected')
           )
         }
         resolve()
@@ -46,11 +53,9 @@ const main = async () => {
     })
   }
 
-  // Setting up the webhook listener
-  const webhook = new WebhookListener(onPaymentUpdated)
-  webhook.listen()
-
-  const bot = new Telegraf(BOT_TOKEN)
+  const i18n = new I18n<BotContext>(i18nConfig)
+  const bot = new Telegraf<BotContext>(BOT_TOKEN)
+  bot.use(i18n.middleware())
   bot.start(async (ctx) => {
     ctx.update.message.chat.id
     const { update: { message: { chat , from: { id, is_bot } } } } = ctx
@@ -58,23 +63,23 @@ const main = async () => {
     const chatId = BigInt(chat.id)
     const user = await db.findUserByTelegramId(telegramId)
     if (is_bot) {
-      return ctx.reply('Sorry, we do not serve bots here')
+      return ctx.reply(ctx.t('no_bots'))
     }
     if (!user) {
       await db.addUser(telegramId, chatId)
-      return ctx.reply('Welcome new user!')
+      return ctx.reply(ctx.t('welcome'))
     }
-    ctx.reply('Welcome back known user!')
+    ctx.reply(ctx.t('welcome_back'))
   })
   bot.help(
-    ctx => ctx.reply('P2P alert bot will allow you to set automated alerts to trading opportunities you might find interesting')
+    ctx => ctx.reply(ctx.t('help'))
   )
   bot.command('addalert', async (ctx) => {
-    const { update: { message: { text, entities }}} = ctx
+    const { update: { message: { text }}} = ctx
     handleAddAlert(ctx, text.split(' '))
   })
   bot.command('listalerts', ctx => handleListAlerts(ctx))
-  bot.command('editalert', ctx => ctx.reply('edit alert selected!'))
+  bot.command('editalert', ctx => ctx.reply(ctx.t('edit_alert_placeholder')))
   bot.command('cancelalert', ctx => {
     const { update: { message: { text } } } = ctx
     handleCancelAlert(ctx, text.split(' '))
@@ -132,44 +137,46 @@ const main = async () => {
   const updater = new OrdersUpdater()
   updater.start(onNotification)
 
+  // Setting up the webhook listener
+  const webhook = new WebhookListener(onPaymentUpdated)
+  webhook.listen()
+
   // Enable graceful stop
   process.once('SIGINT', () => bot.stop('SIGINT'))
   process.once('SIGTERM', () => bot.stop('SIGTERM'))
 }
 
 const getUser = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>
+  ctx: BotContext
 ) : Promise<User | null> => {
   const { update: { message: { from: { id } } } } = ctx
   const user = await db.findUserByTelegramId(BigInt(id))
   if (!user) {
-    await ctx.reply('This is weird, it seems we have not been introduced yet!')
-    await ctx.reply('Please type /start')
+    await ctx.reply(ctx.t('not_introduced'))
+    await ctx.reply(ctx.t('start_prompt'), { parse_mode: 'HTML' })
   }
   return user
 }
 
 const handleAddAlert = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>,
+  ctx: BotContext,
   args: string[]
 ) => {
   if (args.length !== 4) {
-    await ctx.reply('Invalid arguments, expects: /addalert <currency> <price_delta> <order_type>')
-    await ctx.reply('Ex: /addalert USD 5 BUY')
-    return await ctx.reply('☝️ Sets an alert for buy orders with more than 5% of premium')
+    await ctx.reply(ctx.t('addalert_invalid_argument'))
+    await ctx.reply(ctx.t('addalert_sample_l1'))
+    return await ctx.reply(ctx.t('addalert_sample_l2'))
   }
   const [cmd, currency, priceDeltaStr, orderTypeStr] = args
   const priceDelta = parseFloat(priceDeltaStr)
   if (priceDelta === NaN) {
-    return ctx.reply(
-      'Invalid <premium/discount>, expecting a positive or negative number'
-    )
+    return ctx.reply(ctx.t('invalid_premium_or_discount'))
   }
   if (!CURRENCIES.find(c => c.toLowerCase() === currency.toLowerCase())) {
-    return ctx.reply('Invalid <currency> value, expects a currency name. Ex. USD, EUR, etc')
+    return ctx.reply(ctx.t('invalid_currency'))
   }
   if (!ORDER_TYPES.find(o => o.toLowerCase() === orderTypeStr.toLowerCase())) {
-    return ctx.reply('Invalid <order_type>. Must be either BUY or SELL')
+    return ctx.reply(ctx.t('invalid_order_type'))
   }
   const { update: { message: { from: { id } } } } = ctx
   const user = await getUser(ctx)
@@ -185,69 +192,76 @@ const handleAddAlert = async (
     }
   } catch(err) {
     console.error('Error while trying to add/update alert: ', err)
-    return await ctx.reply('Error while trying to add/update alert')
+    return await ctx.reply(ctx.t('addalert_error'))
   }
-  const position = orderType === OrderType.BUY ? 'above' : 'below'
-  ctx.reply(`Perfect! I\'ll let you know whenever a ${orderType} order on ${currency} with price ${position} ${priceDelta}% is posted`)
+  const position = orderType === OrderType.BUY ? ctx.t('above') : ctx.t('below')
+  const transationContext = {
+    position, currency, priceDelta, orderType: ctx.t(orderType.toLowerCase())
+  }
+  ctx.reply(ctx.t('addalert_success', transationContext))
 }
 
 const handleListAlerts = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>
+  ctx: BotContext
 ) => {
   const user = await getUser(ctx)
   if (user) {
     const alerts = await db.findAlertsByUser(user.id)
-    let list = ' <b>**List of programmed alerts**</b> \n'
+    let list = ctx.t('alert_list_title') + '\n'
     for(const alert of alerts) {
       const { id, currency, priceDelta, orderType } = alert
       const flag = orderType === OrderType.BUY ? '🟢' : '🔴'
       const direction = orderType === OrderType.BUY ? '⬆️': '⬇️'
-      const line = `<b>${id})</b> ${flag} ${orderType.toUpperCase()}, ${direction} ${priceDelta}% market price, in ${currency.toUpperCase()}\n`
+      const translatedOrderType = orderType === OrderType.BUY ? ctx.t('buy') : ctx.t('sell')
+      const transationContext = {
+        id, flag, direction, priceDelta,
+        orderType: translatedOrderType,
+        currency: currency.toUpperCase()
+      }
+      const line = ctx.t('alert_list_item', transationContext) + '\n'
       list += line
     }
-    ctx.replyWithHTML(list)
+    ctx.reply(list, {parse_mode: 'HTML'})
   }
 }
 
 const handleCancelAll = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>
+  ctx: BotContext
 ) => {
   const user = await getUser(ctx)
   if (user) {
     const { count } = await db.removeAllAlerts(user.id)
-    if (count === 0) return await ctx.reply('You had no alerts to remove')
+    if (count === 0) return await ctx.reply(ctx.t('no_alerts_to_remove'))
     const msg = count === 1 ?
-      'One alert was removed' : `${count} alerts were removed`
+      ctx.t('alert_removed_single') : ctx.t('alert_removed_multiple', { count })
     await ctx.reply(msg)
   }
 }
 
 const handleCancelAlert = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>,
+  ctx: BotContext,
   args: string[]
 ) => {
   const user = await getUser(ctx)
   if (user) {
     if (args.length !== 2) {
-      await ctx.reply('Invalid arguments, expects: /cancelalert <alert_id>')
-      await ctx.reply('Ex: /addalert 2')
-      return await ctx.reply('You can find all alert ids with /listalerts')
+      await ctx.reply(ctx.t('error_cancel_alert_invalid_argument'))
+      await ctx.reply(ctx.t('error_cancel_alert_ex'))
+      return await ctx.reply(ctx.t('error_cancel_alert_suggestion'))
     }
   }
   const [ cmd, alertIdStr ] = args
   const alertId = parseInt(alertIdStr)
   if (alertId === NaN) {
-    return await ctx.reply('Invalid alert id')
+    return await ctx.reply(ctx.t('error_cancel_alert_invalid_id'))
   }
   let alert = db.findAlertById(alertId)
   try {
     if (alert !== null) {
       await db.removeAlertById(alertId)
-      return await ctx.reply(`Removed alert with id ${alertId}`)
+      return await ctx.reply(ctx.t('cancel_alert_success', { alertId }))
     } else {
-      return await ctx.reply(
-        `Could not remove, no alert was found with id ${alertId}`
-      )
+      return await ctx.reply(ctx.t('error_cancel_alert', {alertId}))
     }
   } catch(err) {
     console.error('Error while removing alert. err: ', err)
@@ -258,19 +272,21 @@ const createPayment = async (
   user: User,
   amount: number,
   subscription: Subscription,
-  ctx: NarrowedContext<Context, Update.MessageUpdate>
+  ctx: BotContext
 ) => {
   const {
-    msg,
+    payment_request,
     error
   } = await paymentManager.createPayment(user, amount, subscription)
-  if (error) return await ctx.reply(error)
-  if (msg) return await ctx.reply(msg, {parse_mode: 'HTML'})
-  else return await ctx.reply('Unexpected result when trying to create payment')
+  if (error) return await ctx.reply(ctx.t(error))
+  const msg = ctx.t('pay_invoice_prompt') + ` <code>${ payment_request }</code>`
+  if (payment_request) return await ctx.reply(msg, {parse_mode: 'HTML'})
+  // Should never happen, but just in case
+  else return await ctx.reply(ctx.t('unexpected_result_payment_creation'))
 }
 
 const handleSubscribe = async (
-  ctx: NarrowedContext<Context, Update.MessageUpdate>,
+  ctx: BotContext,
   args: string[]
 ) => {
   const user = await getUser(ctx)
@@ -289,7 +305,7 @@ const handleSubscribe = async (
       const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
       if (isPaid) {
         // Active subscription is paid, user doesn't need any other payment
-        return await ctx.reply('Your subscription is active and paid')
+        return await ctx.reply(ctx.t('subscription_is_paid'))
       }
       const activePayments = payments
         .filter(p => p.created.getTime() + p.duration * 1e3 > Date.now())
@@ -300,15 +316,18 @@ const handleSubscribe = async (
         // Same thing happens with payment, they should not overlap. So a user can only
         // really have 0 or 1 pending payment for active subscription.
         const [ activePayment ] = activePayments
-        const msg = `Please pay the following invoice: <code>${activePayment.invoice}</code>`
+        const msg = ctx.t('pay_invoice_prompt') +` <code>${activePayment.invoice}</code>`
         return await ctx.reply(msg, {parse_mode: 'HTML'})
       } else {
-        return await ctx.reply(`User has ${activePayments.length} pending payments, this should not happen`)
+        return await ctx.reply(
+          ctx.t(
+            'pending_invoice_exists',
+            { count: activePayments.length }
+          )
+        )
       }
     } else if (activeSubscriptions.length > 1) {
-      return await ctx.reply(
-        'User has multiple active unpaid subscriptions, this should not happen'
-      )
+      return await ctx.reply(ctx.t('multiple_active_subscriptions'))
     }
     // If not, there are subscriptions, but they are all expired
     // in this case we allow the subscription creation to proceed
@@ -317,7 +336,7 @@ const handleSubscribe = async (
   if (args.length === 2) {
     const days = parseInt(args[1])
     if (isNaN(days)) {
-      return await ctx.reply('Wrong [duration] value. A duration must be specified in number of days')
+      return await ctx.reply(ctx.t('wrong_duration'))
     }
     subscriptionDuration = days * 60 * 60 * 24
   }
