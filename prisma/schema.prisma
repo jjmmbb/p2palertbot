@@ -19,6 +19,7 @@ model User {
   id              Int           @id @default(autoincrement())
   telegramId      BigInt        @unique
   chatId          BigInt
+  language        String        @default("en")
   alert           Alert[]
   subscription    Subscription[]
   deliveries      Delivery[]

@@ -58,7 +58,11 @@ const main = async () => {
   bot.use(i18n.middleware())
   bot.start(async (ctx) => {
     ctx.update.message.chat.id
-    const { update: { message: { chat , from: { id, is_bot } } } } = ctx
+    const {
+      update: {
+        message: { chat , from: { id, is_bot, language_code } }
+      }
+    } = ctx
     const telegramId = BigInt(id)
     const chatId = BigInt(chat.id)
     const user = await db.findUserByTelegramId(telegramId)
@@ -66,7 +70,8 @@ const main = async () => {
       return ctx.reply(ctx.t('no_bots'))
     }
     if (!user) {
-      await db.addUser(telegramId, chatId)
+      const language = language_code ? language_code : 'en'
+      await db.addUser(telegramId, chatId, language)
       return ctx.reply(ctx.t('welcome'))
     }
     ctx.reply(ctx.t('welcome_back'))

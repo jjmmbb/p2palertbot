@@ -17,9 +17,9 @@ export class Database extends PrismaClient {
     })
   }
 
-  async addUser(telegramId: bigint, chatId: bigint) {
+  async addUser(telegramId: bigint, chatId: bigint, language: string) {
     return this.user.create({
-      data: { telegramId, chatId }
+      data: { telegramId, chatId, language }
     })
   }
 
