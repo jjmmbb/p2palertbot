@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
+import axios from 'axios'
 import { OrderType, User, Subscription } from '@prisma/client'
 import { Telegraf } from 'telegraf'
 import { I18n } from '@grammyjs/i18n'
@@ -108,26 +109,33 @@ const main = async () => {
     order: Order,
   ) => {
     return new Promise(async (resolve, reject) => {
+      const http = axios.create({
+        baseURL: process.env.LNP2PBOT_BASE_URL
+      })
       try {
         const user = await db.findUserById(userId)
         if (user && bot.telegram) {
           let msg = `${order.description}\n`
-          // PoC: Commented for now because I want to make this more efficient by storing
-          // communities in the database.
-          // let channel = ''
-          // if (order.community_id) {
-          //   const resp = await http.get(`/community/${order.community_id}`)
-          //   const { data } = resp
-          //   channel = data.group.split('@')[1]
-          // } else {
-          //   channel = 'p2plightning'
-          // }
-          // const url = `https://t.me/${channel}/${order.tg_channel_message1}`
-          // if (url !== '') {
-          //   msg += `<a href="${url}">${order._id}</a>\n`
-          // } else {
-          //   msg += `<i>${order._id}</i>\n`
-          // }
+          // TODO: Store community data in the database, so that we
+          // don't have to query this all the time.
+          try {
+            let channel = ''
+            if (order.community_id) {
+              const resp = await http.get(`/community/${order.community_id}`)
+              const { data } = resp
+              channel = data.group.split('@')[1]
+            } else {
+              channel = 'p2plightning'
+            }
+            const url = `https://t.me/${channel}/${order.tg_channel_message1}`
+            if (url !== '') {
+              msg += `<a href="${url}">${order._id}</a>\n`
+            } else {
+              msg += `<i>${order._id}</i>\n`
+            }
+          } catch(err) {
+            console.error('Error while trying to fetch community data: ', err)
+          }
           await bot.telegram.sendMessage(user.chatId.toString(), msg, {parse_mode: 'HTML'})
           await db.addDelivery(userId, alertId, order._id)
         }
