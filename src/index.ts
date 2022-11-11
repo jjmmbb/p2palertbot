@@ -7,21 +7,11 @@ import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
 import { LnbitsPaymentManager } from './payment-manager'
 import { WebhookListener, OnPaymentUpdated } from './webhook'
+import fs from 'fs'
+const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 
 const BOT_TOKEN = process.env.BOT_TOKEN
-const CURRENCIES = [
-  'USD',
-  'EUR',
-  'ARS',
-  'USDT',
-  'MXN',
-  'CLP',
-  'COL',
-  'BTL',
-  'VES',
-  'CUP',
-  'PEN'
-]
+const CURRENCIES = Object.values(fiat).map((f:any) => f.code)
 
 const TEST_AMOUNT_SATS = 1
 

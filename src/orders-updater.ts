@@ -8,7 +8,8 @@ export interface Order {
   _id: string,
   description: string
   tg_channel_message1: string,
-  community_id: string
+  community_id: string,
+  fiat_code: string
 }
 
 export type OnNotificationEvent =
@@ -35,15 +36,6 @@ export class OrdersUpdater {
     const resp = await this.http.get('/orders')
     const { data } = resp
     const orders: Order[] = data
-    const fiatCodeMap = new Map<string, boolean>()
-    orders.map((o:any) => o.fiat_code)
-      .forEach((fiatCode: string) => {
-        if (!fiatCodeMap.has(fiatCode)) {
-          fiatCodeMap.set(fiatCode, true)
-        }
-      })
-    // TODO: Store these in the db
-    // console.log('Fiat codes: ', fiatCodeMap.keys())
     const users = await this.db.findAllUsers()
     for (const user of users) {
       // Checking if user's payment is up to date
