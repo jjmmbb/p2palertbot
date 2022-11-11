@@ -39,3 +39,6 @@ pending_ivoice_exists = User has { $count } pending payments, this should not ha
 multiple_active_subscriptions = User has multiple active unpaid subscriptions, this should not happen
 wrong_duration = Wrong [duration] value. A duration must be specified in number of days
 payment_detected = Great! payment detected! Your subscription is now active 😃
+alert_added_without_subscription = The alert was created, but it will only be delivered once a subscription payment is made
+alert_added_without_active_subscription = The alert was created, but your subscription has expired! Please renew it in order to get notifications delivered. You just need to type /subscribe and pay the invoice
+alert_added_without_paid_subscription = The alert was created, but your subscription is not yet paid for! Please pay the invoice in order to get notifications delivered. If you lost the invoice you can get a new one by typing /subscribe 

@@ -39,3 +39,6 @@ pending_ivoice_exists = El usuario tiene { $count } pagos pendientes, esto no de
 multiple_active_subscriptions = El usuario tiene variqas subscripciones activas pero no pagadas, esto no debería suceder
 wrong_duration = Valor inválido para el campo [duración]. El campo es opcional, pero si se use tiene que ser un valor numérico indicando la cantidad de días.
 payment_detected = Genial! el pago fue registrado! Tu suscripción ahora está activa 😃
+alert_added_without_subscription = ⚠️ El alerta fue creado, pero solo recibiras notificaciones una vez que se haya pagado por la suscripción 😥
+alert_added_without_active_subscription = El alerta fue creado, pero tu suscripción está vencida! 😥 Por favor renuevala para que las notificaciones se puedan entregar. Solo tienes que escribir /subscribe y pagar el invoice
+alert_added_without_paid_subscription = El alerta fue creado, pero tu suscripción no está pagada! Por favor paga el recibo lightning para poder entregarte las notificaciones. Si lo has perdido puedes obtener uno nuevo con el comando /subscribe

@@ -183,7 +183,6 @@ const handleAddAlert = async (
   if (!ORDER_TYPES.find(o => o.toLowerCase() === orderTypeStr.toLowerCase())) {
     return ctx.reply(ctx.t('invalid_order_type'))
   }
-  const { update: { message: { from: { id } } } } = ctx
   const user = await getUser(ctx)
   if (!user) return
   const orderType = orderTypeStr.toUpperCase() === OrderType.BUY
@@ -199,11 +198,29 @@ const handleAddAlert = async (
     console.error('Error while trying to add/update alert: ', err)
     return await ctx.reply(ctx.t('addalert_error'))
   }
-  const position = orderType === OrderType.BUY ? ctx.t('above') : ctx.t('below')
-  const transationContext = {
-    position, currency, priceDelta, orderType: ctx.t(orderType.toLowerCase())
+  const subscriptions = await db.findSubscriptionsByUserId(user.id)
+  if (subscriptions.length === 0) {
+    return await ctx.reply(ctx.t('alert_added_without_subscription'))
+  } else {
+    const activeSubscriptions = subscriptions
+      .filter(sub => sub.created.getTime() + sub.duration * 1e3 > Date.now())
+    if (activeSubscriptions.length === 0) {
+      return await ctx.reply(ctx.t('alert_added_without_active_subscription'))
+    } else {
+      const [ activeSubscription ] = activeSubscriptions
+      const payments = await db.findPaymentsBySubscription(activeSubscription.id)
+      const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
+      if (isPaid) {
+        const position = orderType === OrderType.BUY ? ctx.t('above') : ctx.t('below')
+        const transationContext = {
+          position, currency, priceDelta, orderType: ctx.t(orderType.toLowerCase())
+        }
+        return await ctx.reply(ctx.t('addalert_success', transationContext))
+      } else {
+        return await ctx.reply(ctx.t('alert_added_without_paid_subscription'))
+      }
+    }
   }
-  ctx.reply(ctx.t('addalert_success', transationContext))
 }
 
 const handleListAlerts = async (
