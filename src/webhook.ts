@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from 'express'
+import axios, { AxiosInstance } from 'axios'
 import { Subscription } from '@prisma/client'
 import { Database } from './db'
 
@@ -24,11 +25,20 @@ interface InvoiceUpdate {
   webhook: string
 }
 
+/**
+ * Sometimes it seems like the websocket notification is delivered too fast by lnbits.
+ * So fast that the 'pending' attribute is still true.
+ * We thus need to schedule a second check. This constant specifies the delay until
+ * this second attempt in milliseconds.
+ */
+const PENDING_PAYMENT_SECOND_CHECK_DELAY = 1000
+
 export class WebhookListener {
   private app: Application
   private db: Database = new Database()
   private callback: OnPaymentUpdated
   private PORT: number
+  private http: AxiosInstance
   constructor(callback: OnPaymentUpdated) {
     this.callback = callback
     this.app = express()
@@ -40,6 +50,9 @@ export class WebhookListener {
     } else {
       this.PORT = DEFAULT_PORT
     }
+    this.http = axios.create({
+      baseURL: process.env.LNBITS_BASE_URL
+    })
   }
 
   listen() {
@@ -52,15 +65,59 @@ export class WebhookListener {
     const update: InvoiceUpdate = req.body
     console.log('update: ', update)
     const { payment_hash, pending } = update
-    if (!pending) {
-      const payment = await this.db.findPaymentByHash(payment_hash)
-      if (payment) {
-        await this.db.updatePayment(payment.id, true)
-        // @ts-ignore
-        const subscription: Subscription = payment.subscription
-        this.callback(payment.id, subscription.userId, true)
-      }
+    if (!pending && false) {
+      // const payment = await this.db.findPaymentByHash(payment_hash)
+      // if (payment) {
+      //   await this.db.updatePayment(payment.id, true)
+      //   // @ts-ignore
+      //   const subscription: Subscription = payment.subscription
+      //   this.callback(payment.id, subscription.userId, true)
+      // }
+    } else {
+      // Scheduling a second verification just 500 ms after this
+      setTimeout(
+        this.checkPendingPayment,
+        PENDING_PAYMENT_SECOND_CHECK_DELAY,
+        payment_hash)
     }
     res.status(201).end()
+  }
+
+  checkPendingPayment = async (paymentHash: string) => {
+    try {
+      const config = {
+        headers: {
+          'X-Api-Key': process.env.LNBITS_READ_KEY,
+          'Content-Type': 'application/json'
+        }
+      }
+      const resp = await this.http.get(
+        `/api/v1/payments/${paymentHash}`,
+        config
+      )
+      if (resp.status === 200) {
+        const { paid } = resp.data
+        if (paid) {
+          const payment = await this.db.findPaymentByHash(paymentHash)
+          if (payment) {
+            await this.db.updatePayment(payment.id, true)
+            console.log(`payment ${paymentHash} is now paid!`)
+            // @ts-ignore
+            const subscription: Subscription = payment.subscription
+            this.callback(payment.id, subscription.userId, true)
+          } else {
+            console.warn(`could not find payment in database. payment hash: ${paymentHash}`)
+          }
+        } else {
+          console.log(`payment ${paymentHash} is still pending`)
+        }
+      } else {
+        console.warn(
+          'Error trying to fetch payment state. body: ', resp.data
+        )
+      }
+    } catch(err) {
+      console.error('Error while trying to fetch payment status for the second time')
+    }
   }
 }
