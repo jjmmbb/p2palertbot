@@ -362,8 +362,7 @@ const handleSubscribe = async (
     // If not, there are subscriptions, but they are all expired
     // in this case we allow the subscription creation to proceed
   }
-  // let subscriptionDuration = DEFAULT_SUBSCRIPTION_DURATION
-  let subscriptionDuration = 10
+  let subscriptionDuration = DEFAULT_SUBSCRIPTION_DURATION
   if (args.length === 2) {
     const days = parseInt(args[1])
     if (isNaN(days)) {

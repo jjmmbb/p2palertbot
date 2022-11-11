@@ -1,7 +1,9 @@
 import { PrismaClient, OrderType, Delivery, Subscription, Payment } from '@prisma/client'
 
 // Unless said otherwise, a subscription good for 30 days
-export const DEFAULT_SUBSCRIPTION_DURATION = 30 * 24 * 60 * 60
+// export const DEFAULT_SUBSCRIPTION_DURATION = 30 * 24 * 60 * 60
+// TODO: Uncomment the line above, default subscription of 2 days is for test only
+export const DEFAULT_SUBSCRIPTION_DURATION = 2 * 24 * 60 * 60
 
 export class Database extends PrismaClient {
 
