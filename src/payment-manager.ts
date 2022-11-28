@@ -3,6 +3,7 @@ import { Database } from './db'
 import { AxiosClient } from './axios-client'
 import { User, Subscription } from '@prisma/client'
 import * as bolt11 from 'bolt11'
+import { logger } from './logger'
 
 // Polling every 5 minutes, as this ideally should be
 // just a backup. We should rely primarily on the webhook.
@@ -47,12 +48,12 @@ export class LnbitsPaymentManager extends AxiosClient{
         const { paid } = resp.data
         if (paid) {
           await this.db.updatePayment(id, true)
-          console.log(`payment ${paymentHash} is now paid!`)
+          logger.info(`payment ${paymentHash} is now paid!`)
         } else {
-          console.log(`payment ${paymentHash} is still pending`)
+          logger.info(`payment ${paymentHash} is still pending`)
         }
       } else {
-        console.warn(
+        logger.warn(
           'Error trying to fetch payment state. body: ', resp.data
         )
       }
@@ -82,7 +83,7 @@ export class LnbitsPaymentManager extends AxiosClient{
           error
         } = resp.data
         if (error) {
-          console.error('Invoice generation error: ', error)
+          logger.error('Invoice generation error: ', error)
           return { error: 'error_invoice_generation' }
         }
         const { timestamp, timeExpireDate } = bolt11.decode(payment_request)

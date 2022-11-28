@@ -10,6 +10,7 @@ import { LnbitsPaymentManager } from './payment-manager'
 import { WebhookListener, OnPaymentUpdated } from './webhook'
 import { BotContext } from './types'
 import fs from 'fs'
+import { logger } from './logger'
 const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 
 const BOT_TOKEN = process.env.BOT_TOKEN
@@ -29,7 +30,7 @@ const i18nConfig = {
 
 const main = async () => {
   if (BOT_TOKEN === undefined) {
-    console.log('BOT_TOKEN undefined')
+    logger.error('BOT_TOKEN undefined')
     return
   }
   const onPaymentUpdated: OnPaymentUpdated = (
@@ -100,7 +101,7 @@ const main = async () => {
   try {
     await bot.launch()
   } catch(e) {
-    console.error('error: ', e)
+    logger.error('error: ', e)
   }
 
   const onNotification: OnNotificationEvent = (
@@ -134,7 +135,7 @@ const main = async () => {
               msg += `<i>${order._id}</i>\n`
             }
           } catch(err) {
-            console.error('Error while trying to fetch community data: ', err)
+            logger.error('Error while trying to fetch community data: ', err)
           }
           await bot.telegram.sendMessage(user.chatId.toString(), msg, {parse_mode: 'HTML'})
           await db.addDelivery(userId, alertId, order._id)
@@ -203,7 +204,7 @@ const handleAddAlert = async (
       await db.addAlert(user.id, currency, priceDelta, orderType)
     }
   } catch(err) {
-    console.error('Error while trying to add/update alert: ', err)
+    logger.error('Error while trying to add/update alert: ', err)
     return await ctx.reply(ctx.t('addalert_error'))
   }
   const subscriptions = await db.findSubscriptionsByUserId(user.id)
@@ -294,7 +295,7 @@ const handleCancelAlert = async (
       return await ctx.reply(ctx.t('error_cancel_alert', {alertId}))
     }
   } catch(err) {
-    console.error('Error while removing alert. err: ', err)
+    logger.error('Error while removing alert. err: ', err)
   }
 }
 

@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios'
 import { User } from '@prisma/client'
 import { Database } from './db'
+import { logger } from './logger'
+
 // 3 minutes
 const INTERVAL = 3 * 60 * 1e3
 
@@ -40,11 +42,9 @@ export class OrdersUpdater {
     for (const user of users) {
       // Checking if user's payment is up to date
       const isSubscribed = await this.checkUserSubscription(user)
+      logger.info(`user: ${user.id}, subscribed: ${isSubscribed}`)
       if (!isSubscribed) {
-        console.log(`Skipping user ${user.id} as it is not subscribed`)
         continue
-      } else {
-        console.log(`Continue with user ${user.id} as it has an active subscription`)
       }
       // Fetching all alerts of a user
       const alerts = await this.db.findAlertsByUser(user.id)
@@ -75,7 +75,7 @@ export class OrdersUpdater {
             if (this.onNotification)
               await this.onNotification(user.id, alert.id, order)
             else
-              console.warn('Not issuing notification because callback is undefined')
+              logger.warn('Not issuing notification because callback is undefined')
           }
         }
       }

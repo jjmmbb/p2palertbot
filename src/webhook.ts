@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express'
 import axios, { AxiosInstance } from 'axios'
 import { Subscription } from '@prisma/client'
 import { Database } from './db'
+import { logger } from './logger'
 
 const DEFAULT_PORT: number = 3005
 
@@ -57,13 +58,13 @@ export class WebhookListener {
 
   listen() {
     this.app.listen(this.PORT, () => {
-      console.log(`Webhook listening at port ${this.PORT}`)
+      logger.info(`Webhook listening at port ${this.PORT}`)
     })
   }
 
   webhookHandler = async (req: Request, res: Response) => {
     const update: InvoiceUpdate = req.body
-    console.log('update: ', update)
+    logger.info('update: ', update)
     const { payment_hash, pending } = update
     if (!pending && false) {
       // const payment = await this.db.findPaymentByHash(payment_hash)
@@ -101,23 +102,23 @@ export class WebhookListener {
           const payment = await this.db.findPaymentByHash(paymentHash)
           if (payment) {
             await this.db.updatePayment(payment.id, true)
-            console.log(`payment ${paymentHash} is now paid!`)
+            logger.info(`payment ${paymentHash} is now paid!`)
             // @ts-ignore
             const subscription: Subscription = payment.subscription
             this.callback(payment.id, subscription.userId, true)
           } else {
-            console.warn(`could not find payment in database. payment hash: ${paymentHash}`)
+            logger.warn(`could not find payment in database. payment hash: ${paymentHash}`)
           }
         } else {
-          console.log(`payment ${paymentHash} is still pending`)
+          logger.info(`payment ${paymentHash} is still pending`)
         }
       } else {
-        console.warn(
+        logger.warn(
           'Error trying to fetch payment state. body: ', resp.data
         )
       }
     } catch(err) {
-      console.error('Error while trying to fetch payment status for the second time')
+      logger.error('Error while trying to fetch payment status for the second time')
     }
   }
 }
