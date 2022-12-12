@@ -30,8 +30,11 @@ export const logger = winston.createLogger({
     }),
     new winston.transports.File({
       filename: 'arturito.log',
-      level: process.env.LOG_LEVEL_FILE || 'error',
-      format: combine(timestamp(), json())
+      level: process.env.LOG_LEVEL_FILE || 'debug',
+      format: combine(
+        timestamp(),
+        printf((info) => `[${info.timestamp}] ${info.level}:${info.message}`)
+      )
     })
   ]
 })
