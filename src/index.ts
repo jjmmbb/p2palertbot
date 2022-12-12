@@ -97,6 +97,8 @@ const main = async () => {
     const args = text.split(' ')
     handleSubscribe(ctx, args)
   })
+  bot.command('info', ctx => handleInfo(ctx))
+  bot.command('about', ctx => handleAbout(ctx))
 
   try {
     await bot.launch()
@@ -378,6 +380,15 @@ const handleSubscribe = async (
   // TODO: Placeholder amount. Calculate this from subscription duration.
   const amount = TEST_AMOUNT_SATS
   await createPayment(user, amount, subscription, ctx)
+}
+
+const handleInfo = async (ctx: BotContext) => ctx.reply(ctx.t('info'))
+
+const handleAbout = async (ctx: BotContext) => {
+  const version: string = process.env.npm_package_version ?
+    process.env.npm_package_version : '?.?.?'
+  const transationContext = { version }
+  ctx.reply(ctx.t('about', transationContext))
 }
 
 main()
