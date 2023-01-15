@@ -187,7 +187,7 @@ const handleAddAlert = async (
   }
   const [cmd, currency, priceDeltaStr, orderTypeStr] = args
   const priceDelta = parseFloat(priceDeltaStr)
-  if (priceDelta === NaN) {
+  if (Number.isNaN(priceDelta)) {
     return ctx.reply(ctx.t('invalid_premium_or_discount'))
   }
   if (!CURRENCIES.find(c => c.toLowerCase() === currency.toLowerCase())) {
@@ -287,7 +287,7 @@ const handleCancelAlert = async (
   }
   const [ cmd, alertIdStr ] = args
   const alertId = parseInt(alertIdStr)
-  if (alertId === NaN) {
+  if (Number.isNaN(alertId)) {
     return await ctx.reply(ctx.t('error_cancel_alert_invalid_id'))
   }
   let alert = db.findAlertById(alertId)
