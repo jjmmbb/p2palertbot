@@ -367,14 +367,15 @@ const handleSubscribe = async (
     // If not, there are subscriptions, but they are all expired
     // in this case we allow the subscription creation to proceed
   }
-  let subscriptionDuration = DEFAULT_SUBSCRIPTION_DURATION
-  if (args.length === 2) {
+  let subscriptionDuration = undefined
+  if (args.length !== 2) {
+    return await ctx.reply(ctx.t('help_subscription'), {parse_mode: 'HTML'})
+  } else if (args.length === 2) {
     const days = parseInt(args[1])
     if (isNaN(days)) {
       return await ctx.reply(ctx.t('wrong_duration'))
     }
-    // subscriptionDuration = days * 60 * 60 * 24 // TODO: Re-enable
-    subscriptionDuration = Math.max(days, 10) * 60 * 60 * 24
+    subscriptionDuration = days * 60 * 60 * 24
   }
   const subscription = await db.createSubscription(user.id, subscriptionDuration)
   // TODO: Placeholder amount. Calculate this from subscription duration.
