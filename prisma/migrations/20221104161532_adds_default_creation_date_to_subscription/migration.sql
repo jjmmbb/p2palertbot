@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `Subscription` MODIFY `created` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
