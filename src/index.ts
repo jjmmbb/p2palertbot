@@ -4,19 +4,18 @@ import axios from 'axios'
 import { OrderType, User, Subscription } from '@prisma/client'
 import { Telegraf } from 'telegraf'
 import { I18n } from '@grammyjs/i18n'
-import { Database, DEFAULT_SUBSCRIPTION_DURATION } from './db'
+import { Database } from './db'
 import { OrdersUpdater, OnNotificationEvent, Order } from './orders-updater'
 import { LnbitsPaymentManager } from './payment-manager'
 import { WebhookListener, OnPaymentUpdated } from './webhook'
 import { BotContext } from './types'
 import fs from 'fs'
 import { logger } from './logger'
+import { SubscriptionCosts, COST_PER_DAY } from './subscription-costs'
 const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const CURRENCIES = Object.values(fiat).map((f:any) => f.code)
-
-const TEST_AMOUNT_SATS = 10
 
 const ORDER_TYPES = ['BUY', 'SELL']
 
@@ -328,59 +327,41 @@ const handleSubscribe = async (
   if (!user) {
     return
   }
-  let subscriptions = await db.findSubscriptionsByUserId(user.id)
-  if (subscriptions !== null) {
-    const activeSubscriptions = subscriptions
-      .filter(sub => sub.created.getTime() + sub.duration * 1e3 > Date.now())
-    if (activeSubscriptions.length === 1) {
-      // An active subscription is one that covers the current time,
-      // a user should only have 1 as subscriptions should not overlap.
-      const [ activeSubscription ] = activeSubscriptions
-      const payments = await db.findPaymentsBySubscription(activeSubscription.id)
-      const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
-      if (isPaid) {
-        // Active subscription is paid, user doesn't need any other payment
-        return await ctx.reply(ctx.t('subscription_is_paid'))
-      }
-      const activePayments = payments
-        .filter(p => p.created.getTime() + p.duration * 1e3 > Date.now())
-      if (activePayments.length === 0) {
-        const amount = TEST_AMOUNT_SATS
-        return await createPayment(user, amount, activeSubscription, ctx)
-      } else if (activePayments.length === 1) {
-        // Same thing happens with payment, they should not overlap. So a user can only
-        // really have 0 or 1 pending payment for active subscription.
-        const [ activePayment ] = activePayments
-        const msg = ctx.t('pay_invoice_prompt') +` <code>${activePayment.invoice}</code>`
-        return await ctx.reply(msg, {parse_mode: 'HTML'})
-      } else {
-        return await ctx.reply(
-          ctx.t(
-            'pending_invoice_exists',
-            { count: activePayments.length }
-          )
-        )
-      }
-    } else if (activeSubscriptions.length > 1) {
-      return await ctx.reply(ctx.t('multiple_active_subscriptions'))
-    }
-    // If not, there are subscriptions, but they are all expired
-    // in this case we allow the subscription creation to proceed
-  }
-  let subscriptionDuration = undefined
+  let days: number | undefined = undefined
   if (args.length !== 2) {
-    return await ctx.reply(ctx.t('help_subscription'), {parse_mode: 'HTML'})
-  } else if (args.length === 2) {
-    const days = parseInt(args[1])
+    return await ctx.reply(ctx.t('help_subscription', {costPerDay: COST_PER_DAY}), {parse_mode: 'HTML'})
+  } else {
+    days = parseInt(args[1])
     if (isNaN(days)) {
       return await ctx.reply(ctx.t('wrong_duration'))
     }
-    subscriptionDuration = days * 60 * 60 * 24
+    let currentSubscriptions = await db.findCurrentSubscriptions(user.id)
+    // First we look for a paid subscription that is current
+    const paidSubscriptions = currentSubscriptions.filter(sub => {
+      const isPaid = sub.payment.reduce((accum, payment) => accum || payment.paid, false)
+      return isPaid
+    })
+    if (paidSubscriptions.length === 1) {
+      // Only 1 subscription really can be paid & current
+      // Active subscription is paid, user doesn't need any other payment
+      return await ctx.reply(ctx.t('subscription_is_paid'))
+    } else if (paidSubscriptions.length > 1) {
+      // Weird edge case, maybe 2 invoices were generated and paid for?
+      // Just issue a message like above, but log this
+      console.warn(`User ${user.id} was found to have ${paidSubscriptions.length} paid and current subscriptions`)
+      return await ctx.reply(ctx.t('subscription_is_paid'))
+    }
+    try {
+      const subscription = await db.createSubscription(
+        user.id,
+        days * 60 * 60 * 24
+      )
+      const amount = SubscriptionCosts.calculateCost(days)
+      await createPayment(user, amount, subscription, ctx)
+    } catch(err) {
+      console.error('error: ', err)
+    }
   }
-  const subscription = await db.createSubscription(user.id, subscriptionDuration)
-  // TODO: Placeholder amount. Calculate this from subscription duration.
-  const amount = TEST_AMOUNT_SATS
-  await createPayment(user, amount, subscription, ctx)
 }
 
 const handleInfo = async (ctx: BotContext) => ctx.reply(ctx.t('info'))

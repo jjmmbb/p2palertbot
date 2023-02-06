@@ -1,10 +1,5 @@
 import { PrismaClient, OrderType, Delivery, Subscription, Payment } from '@prisma/client'
 
-// Unless said otherwise, a subscription good for 30 days
-// export const DEFAULT_SUBSCRIPTION_DURATION = 30 * 24 * 60 * 60
-// TODO: Uncomment the line above, default subscription of 2 days is for test only
-export const DEFAULT_SUBSCRIPTION_DURATION = 2 * 24 * 60 * 60
-
 export class Database extends PrismaClient {
 
   async findUserById(id: number) {
@@ -112,9 +107,25 @@ export class Database extends PrismaClient {
     })
   }
 
+  async findCurrentSubscriptions(
+    userId: number
+  ) : Promise<(Subscription & { payment: Payment[] })[]> {
+    const subscriptions = await this.subscription.findMany({
+      where: { userId },
+      include: { payment: true }
+    })
+    return subscriptions
+      .filter(sub => {
+        const created = Math.trunc(sub.created.getTime() / 1e3)
+        const expires = Math.trunc(created + sub.duration)
+        const now = Math.trunc(Date.now() / 1e3)
+        return expires > now
+      })
+  }
+
   async createSubscription(
     userId: number,
-    duration: number = DEFAULT_SUBSCRIPTION_DURATION
+    duration: number
   ) : Promise<Subscription> {
     return this.subscription.create({
       data: { userId, duration },

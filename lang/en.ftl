@@ -50,3 +50,4 @@ about = Arturito Bot v { $version }.
   This Bot is in alpha, please report any bugs to the creator @bilthon
 help_subscription = You must specify a subscription duration per day.
   Ex: <code>/subscribe 10</code> for a 10 day subscription.
+  The cost per day is { $costPerDay } sats
