@@ -211,6 +211,7 @@ const handleAddAlert = async (
     return await ctx.reply(ctx.t('addalert_error'))
   }
   const subscriptions = await db.findSubscriptionsByUserId(user.id)
+  logger.info(`looking for subscriptions for user: ${user.id}, got ${subscriptions.length}`)
   if (subscriptions.length === 0) {
     return await ctx.reply(ctx.t('alert_added_without_subscription'))
   } else {
@@ -219,10 +220,17 @@ const handleAddAlert = async (
     if (activeSubscriptions.length === 0) {
       return await ctx.reply(ctx.t('alert_added_without_active_subscription'))
     } else {
-      const [ activeSubscription ] = activeSubscriptions
-      const payments = await db.findPaymentsBySubscription(activeSubscription.id)
-      const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
-      if (isPaid) {
+      logger.info(`active subscriptions: ${activeSubscriptions.length}`)
+      const activeAndPaidSubscriptions = []
+      for (const activeSubscription of activeSubscriptions) {
+        const payments = await db.findPaymentsBySubscription(activeSubscription.id)
+        const isPaid = payments.reduce((accum, payment) => accum || payment.paid, false)
+        if (isPaid) {
+          activeAndPaidSubscriptions.push(activeSubscription)
+        }
+      }
+      logger.info(`active & paid subscriptions: ${activeAndPaidSubscriptions.length}`)
+      if (activeAndPaidSubscriptions.length > 0) {
         const position = orderType === OrderType.BUY ? ctx.t('above') : ctx.t('below')
         const transationContext = {
           position, currency, priceDelta, orderType: ctx.t(orderType.toLowerCase())
