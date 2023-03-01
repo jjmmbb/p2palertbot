@@ -39,23 +39,31 @@ export class LnbitsPaymentManager extends AxiosClient{
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1e3)
     const pendingPayments = await this.db.getPendingPayments(dayAgo)
     for (const pendingPayment of pendingPayments) {
-      const { paymentHash, id } = pendingPayment
-      const resp = await this.http.get(
-        `/api/v1/payments/${paymentHash}`,
-        this.config
-      )
-      if (resp.status === 200) {
-        const { paid } = resp.data
-        if (paid) {
-          await this.db.updatePayment(id, true)
-          logger.info(`payment ${paymentHash} is now paid!`)
-        } else {
-          logger.info(`payment ${paymentHash} is still pending`)
-        }
-      } else {
-        logger.warn(
-          'Error trying to fetch payment state. body: ', resp.data
+      const { paymentHash, id, created, duration } = pendingPayment
+      if (Date.now() > created.getTime() + duration * 1e3) {
+        // Expired unpaid invoice, ignoring
+        continue
+      }
+      try {
+        const resp = await this.http.get(
+          `/api/v1/payments/${paymentHash}`,
+          this.config
         )
+        if (resp.status === 200) {
+          const { paid } = resp.data
+          if (paid) {
+            await this.db.updatePayment(id, true)
+            logger.info(`payment ${paymentHash} is now paid!`)
+          } else {
+            logger.info(`payment ${paymentHash} is still pending`)
+          }
+        } else {
+          logger.warn(
+            'Error trying to fetch payment state. body: ', resp.data
+          )
+        }
+      } catch(err) {
+        console.error('Error while checking for payment. err: ', err)
       }
     }
   }

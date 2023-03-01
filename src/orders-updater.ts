@@ -35,54 +35,58 @@ export class OrdersUpdater {
   }
 
   updateOrders = async () => {
-    const resp = await this.http.get('/orders')
-    const { data } = resp
-    const orders: Order[] = data
-    const users = await this.db.findAllUsers()
-    for (const user of users) {
-      // Checking if user's payment is up to date
-      const isSubscribed = await this.checkUserSubscription(user)
-      logger.info(`user: ${user.id}, subscribed: ${isSubscribed}`)
-      if (!isSubscribed) {
-        continue
-      }
-      // Fetching all alerts of a user
-      const alerts = await this.db.findAlertsByUser(user.id)
-      for (const alert of alerts) {
-        logger.info(`alert. currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}`)
-        const filtered = orders.filter((o: any) => {
-          if (o.fiat_code.toUpperCase() !== alert.currency.toUpperCase()) {
-            return false
-          }
-          if (o.type.toUpperCase() !== alert.orderType.toUpperCase()) {
-            return false
-          }
-          if (!o.price_from_api) {
-            return false
-          }
-          logger.debug(`order: ${o._id}. type: ${o.type}, price_margin: ${o.price_margin}`)
-          if (o.type.toUpperCase() === 'SELL') {
-            return o.price_margin <= alert.priceDelta
-          } else {
-            return o.price_margin >= alert.priceDelta
-          }
-        })
-        logger.info(`Got ${filtered.length} alerts for user ${user.id}`)
-        for(const order of filtered) {
-          const delivery = await this.db.findDelivery(user.id, alert.id, order._id)
-          if (delivery !== null) {
-            logger.info(`User ${user.id} was already notified of order: ${order._id}`)
-            // The user was already notified of this order
-            continue
-          } else {
-            // Notify user & record delivery
-            if (this.onNotification)
-              await this.onNotification(user.id, alert.id, order)
-            else
-              logger.warn('Not issuing notification because callback is undefined')
+    try {
+      const resp = await this.http.get('/orders')
+      const { data } = resp
+      const orders: Order[] = data
+      const users = await this.db.findAllUsers()
+      for (const user of users) {
+        // Checking if user's payment is up to date
+        const isSubscribed = await this.checkUserSubscription(user)
+        logger.info(`user: ${user.id}, subscribed: ${isSubscribed}`)
+        if (!isSubscribed) {
+          continue
+        }
+        // Fetching all alerts of a user
+        const alerts = await this.db.findAlertsByUser(user.id)
+        for (const alert of alerts) {
+          logger.info(`alert. currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}`)
+          const filtered = orders.filter((o: any) => {
+            if (o.fiat_code.toUpperCase() !== alert.currency.toUpperCase()) {
+              return false
+            }
+            if (o.type.toUpperCase() !== alert.orderType.toUpperCase()) {
+              return false
+            }
+            if (!o.price_from_api) {
+              return false
+            }
+            logger.debug(`order: ${o._id}. type: ${o.type}, price_margin: ${o.price_margin}`)
+            if (o.type.toUpperCase() === 'SELL') {
+              return o.price_margin <= alert.priceDelta
+            } else {
+              return o.price_margin >= alert.priceDelta
+            }
+          })
+          logger.info(`Got ${filtered.length} alerts for user ${user.id}`)
+          for(const order of filtered) {
+            const delivery = await this.db.findDelivery(user.id, alert.id, order._id)
+            if (delivery !== null) {
+              logger.info(`User ${user.id} was already notified of order: ${order._id}`)
+              // The user was already notified of this order
+              continue
+            } else {
+              // Notify user & record delivery
+              if (this.onNotification)
+                await this.onNotification(user.id, alert.id, order)
+              else
+                logger.warn('Not issuing notification because callback is undefined')
+            }
           }
         }
       }
+    } catch(err) {
+      console.error('Error while trying to fetch orders. Err: ', err)
     }
   }
 
