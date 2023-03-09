@@ -41,6 +41,8 @@ export class OrdersUpdater {
       const orders: Order[] = data
       const users = await this.db.findAllUsers()
       for (const user of users) {
+        let notificationCounter = 0
+        let discardedNotificationCounter = 0
         // Checking if user's payment is up to date
         const isSubscribed = await this.checkUserSubscription(user)
         logger.info(`user: ${user.id}, subscribed: ${isSubscribed}`)
@@ -51,7 +53,7 @@ export class OrdersUpdater {
         const alerts = await this.db.findAlertsByUser(user.id)
         for (const alert of alerts) {
           logger.info(`alert. currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}`)
-          const filtered = orders.filter((o: any) => {
+          const filteredOrders = orders.filter((o: any) => {
             if (o.fiat_code.toUpperCase() !== alert.currency.toUpperCase()) {
               return false
             }
@@ -61,29 +63,30 @@ export class OrdersUpdater {
             if (!o.price_from_api) {
               return false
             }
-            logger.debug(`order: ${o._id}. type: ${o.type}, price_margin: ${o.price_margin}`)
             if (o.type.toUpperCase() === 'SELL') {
               return o.price_margin <= alert.priceDelta
             } else {
               return o.price_margin >= alert.priceDelta
             }
           })
-          logger.info(`Got ${filtered.length} alerts for user ${user.id}`)
-          for(const order of filtered) {
+          for(const order of filteredOrders) {
             const delivery = await this.db.findDelivery(user.id, alert.id, order._id)
             if (delivery !== null) {
-              logger.info(`User ${user.id} was already notified of order: ${order._id}`)
+              discardedNotificationCounter++
               // The user was already notified of this order
               continue
             } else {
               // Notify user & record delivery
-              if (this.onNotification)
+              if (this.onNotification) {
                 await this.onNotification(user.id, alert.id, order)
-              else
+                notificationCounter++
+              } else {
                 logger.warn('Not issuing notification because callback is undefined')
+              }
             }
           }
         }
+        logger.info(`user: ${user.id}, telegram: ${user.telegramId}, 📝:${alerts.length}, 📢:${notificationCounter}, 🗑️: ${discardedNotificationCounter}`)
       }
     } catch(err) {
       console.error('Error while trying to fetch orders. Err: ', err)
