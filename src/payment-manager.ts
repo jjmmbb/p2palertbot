@@ -80,13 +80,15 @@ export class LnbitsPaymentManager extends AxiosClient{
   ) : Promise<PaymentCreationResponse> {
     const { duration } = subscription
     const memo = `subscription for user ${user.id}, good for ${duration} secs`
+    const webhook = this.getWebhook()
     const data = {
       out: false,
       amount: amount,
-      webhook: this.getWebhook(),
+      webhook: webhook,
       unit: 'sat',
       memo
     }
+    logger.info(`creating payment. telegram user: ${user.id}, amount: ${amount} sats, webhook: ${webhook}`)
     try {
       const resp = await this.http.post(`/api/v1/payments`, data, this.config)
       if (resp.status === 201) {
