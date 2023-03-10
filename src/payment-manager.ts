@@ -68,6 +68,11 @@ export class LnbitsPaymentManager extends AxiosClient{
     }
   }
 
+  // This is introduced because while in development mode we rely on ngrok,
+  // in production we want to combine WEBHOOK_URL & WEBHOOK_PORT
+  getWebhook = () => process.env.NODE_ENV === 'production' ?
+    `${process.env.WEBHOOK_URL}:${process.env.WEBHOOK_PORT}` : process.env.WEBHOOK_URL
+
   async createPayment(
     user: User,
     amount: number,
@@ -78,7 +83,7 @@ export class LnbitsPaymentManager extends AxiosClient{
     const data = {
       out: false,
       amount: amount,
-      webhook: process.env.WEBHOOK_URL,
+      webhook: this.getWebhook(),
       unit: 'sat',
       memo
     }
