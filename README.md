@@ -60,7 +60,7 @@ This will reply with a Lightning invoice, that once paid will give you a subscri
 
 ## Contact
 
-<img src="https://user-images.githubusercontent.com/99301796/219741736-3ce00069-9c6a-47f2-9c8b-108f3f40295b.png" alt="Nostr logo" width="15"/> Nostr - @npub1qqqqqzwwsdha2f5fvel4gtj02rgnw9syyuv4hqywg8unucgc9e3qxsll4h<br><br>
+<img src="https://user-images.githubusercontent.com/99301796/219741736-3ce00069-9c6a-47f2-9c8b-108f3f40295b.png" alt="Nostr logo" width="15"/> Nostr - @npub1qqqqqzwwsdha2f5fvel4gtj02rgnw9syyuv4hqywg8unucgc9e3qxsll4h<br>
 <img src="https://i.imgur.com/pj9J7fv.png" alt="Telegram" width="15"/> Telegram - [Bilthon](https://t.me/bilthon)
 
 Distributed under the MIT license. See ``LICENSE`` for more information.
