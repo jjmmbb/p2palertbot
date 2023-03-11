@@ -52,7 +52,6 @@ export class OrdersUpdater {
         // Fetching all alerts of a user
         const alerts = await this.db.findAlertsByUser(user.id)
         for (const alert of alerts) {
-          logger.info(`alert. currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}`)
           const filteredOrders = orders.filter((o: any) => {
             if (o.fiat_code.toUpperCase() !== alert.currency.toUpperCase()) {
               return false

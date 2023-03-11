@@ -5,9 +5,9 @@ import { User, Subscription } from '@prisma/client'
 import * as bolt11 from 'bolt11'
 import { logger } from './logger'
 
-// Polling every 5 minutes, as this ideally should be
+// Polling every 1 minute, as this ideally should be
 // just a backup. We should rely primarily on the webhook.
-const PAYMENT_CHECK_INTERVAL = 1e3 * 60 * 5
+const PAYMENT_CHECK_INTERVAL = 1e3 * 60
 
 export type PaymentCreationResponse = {
   payment_request?: string,
@@ -44,6 +44,7 @@ export class LnbitsPaymentManager extends AxiosClient{
         // Expired unpaid invoice, ignoring
         continue
       }
+      logger.info(`check invoice with payment hash: ${paymentHash}`)
       try {
         const resp = await this.http.get(
           `/api/v1/payments/${paymentHash}`,
