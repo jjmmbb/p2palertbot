@@ -42,7 +42,9 @@ payment_detected = Genial! el pago fue registrado! Tu suscripción ahora está a
 alert_added_without_subscription = ⚠️ El alerta fue creado, pero solo recibiras notificaciones una vez que se haya pagado por la suscripción 😥
 alert_added_without_active_subscription = El alerta fue creado, pero tu suscripción está vencida! 😥 Por favor renuevala para que las notificaciones se puedan entregar. Solo tienes que escribir /subscribe y pagar el invoice
 alert_added_without_paid_subscription = El alerta fue creado, pero tu suscripción no está pagada! Por favor paga el recibo lightning para poder entregarte las notificaciones. Si lo has perdido puedes obtener uno nuevo con el comando /subscribe
-info = Metodo no implementado 🔨
+info = <b>Suscripciones:</b> { $subscriptionCount }, ({ $activeCount } active)
+  <b>Total pagado:</b> { $totalPaid } sats
+  <b>Alertas:</b> { $alertsCount }
 about = Arturito Bot v{ $version }.
 
   El Bot Arturito funciona en conjunto con el LNP2PBot, su propósito es permitirle recibir una notificación cada vez que se presente una oportunidad de intercambio interesante. Supongamos que alguien tiene una gran necesidad de efectivo y decide que necesita vender algunos sats. Para que esta persona venda más rápido, es muy probable que esté dispuesta a ofrecer un descuento en el precio. Sin embargo, eso es solo parte de la historia, ya que para que esta transacción se complete rápidamente, lo ideal sería que los compradores potenciales fueran notificados de esta venta con un descuento. Actualmente todos los pedidos nuevos se publican en el canal principal o dentro de las comunidades, pero ¿no sería mejor si pudiera recibir solo notificaciones especialmente diseñadas para las ofertas comerciales que realmente te interesan? Pues esto es lo que hace Arturito. Tu le describes cómo se ve un pedido atractivo para ti y el te avisará cuando se publique algo así.

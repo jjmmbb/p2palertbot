@@ -103,7 +103,8 @@ export class Database extends PrismaClient {
     userId: number
   ) : Promise<Subscription[]> {
     return this.subscription.findMany({
-      where: { userId }
+      where: { userId },
+      include: { payment: true }
     })
   }
 

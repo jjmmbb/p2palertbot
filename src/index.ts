@@ -11,6 +11,7 @@ import { WebhookListener, OnPaymentUpdated } from './webhook'
 import { BotContext } from './types'
 import fs from 'fs'
 import { logger } from './logger'
+import handleInfo from './info'
 import { SubscriptionCosts, COST_PER_DAY } from './subscription-costs'
 const fiat = JSON.parse(fs.readFileSync('./data/fiat.json', 'utf-8'))
 
@@ -96,7 +97,7 @@ const main = async () => {
     const args = text.split(' ')
     handleSubscribe(ctx, args)
   })
-  bot.command('info', ctx => handleInfo(ctx))
+  bot.command('info', ctx => handleInfo(ctx, db))
   bot.command('about', ctx => handleAbout(ctx))
 
   try {
@@ -371,8 +372,6 @@ const handleSubscribe = async (
     }
   }
 }
-
-const handleInfo = async (ctx: BotContext) => ctx.reply(ctx.t('info'))
 
 const handleAbout = async (ctx: BotContext) => {
   const version: string = process.env.npm_package_version ?
