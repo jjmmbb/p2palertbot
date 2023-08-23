@@ -25,8 +25,8 @@ model Order {
   status            String
   type              String
   fiatAmount        Float?      @map("fiat_amount")
-  minAmount         Float       @map("min_amount")
-  maxAmount         Float       @map("max_amount")
+  minAmount         Float?      @map("min_amount")
+  maxAmount         Float?      @map("max_amount")
   fiatCode          String      @map("fiat_code")
   paymentMethod     String      @map("payment_method")
   takenAt           DateTime?   @map("taken_at")
