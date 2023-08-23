@@ -16,8 +16,8 @@ enum OrderType {
 }
 
 model Order {
-  id                String      @id @map("_id")
-  description       String
+  id                String      @id @unique @map("_id")
+  description       String      @db.Text
   amount            Float
   fee               Float
   botFee            Float       @map("bot_fee")
@@ -28,7 +28,7 @@ model Order {
   minAmount         Float?      @map("min_amount")
   maxAmount         Float?      @map("max_amount")
   fiatCode          String      @map("fiat_code")
-  paymentMethod     String      @map("payment_method")
+  paymentMethod     String      @map("payment_method") @db.Text
   takenAt           DateTime?   @map("taken_at")
   tgChatId          String?     @map("tg_chat_id")
   tgOrderMessage    String?     @map("tg_order_message")
