@@ -15,6 +15,32 @@ enum OrderType {
   SELL
 }
 
+model Order {
+  id                String      @id @map("_id")
+  description       String
+  amount            Float
+  fee               Float
+  botFee            Float       @map("bot_fee")
+  communityFee      Float       @map("community_fee")
+  status            String
+  type              String
+  fiatAmount        Float?      @map("fiat_amount")
+  minAmount         Float       @map("min_amount")
+  maxAmount         Float       @map("max_amount")
+  fiatCode          String      @map("fiat_code")
+  paymentMethod     String      @map("payment_method")
+  takenAt           DateTime?   @map("taken_at")
+  tgChatId          String?     @map("tg_chat_id")
+  tgOrderMessage    String?     @map("tg_order_message")
+  tgChannelMessage1 String      @map("tg_channel_message1")
+  priceFromApi      Boolean     @map("price_from_api")
+  priceMargin       Float       @map("price_margin")
+  communityId       String?     @map("community_id")
+  isPublic          Boolean     @map("is_public")
+  createdAt         DateTime    @map("created_at") @default(now())
+}
+
+
 model User {
   id              Int           @id @default(autoincrement())
   telegramId      BigInt        @unique
