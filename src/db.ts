@@ -1,6 +1,41 @@
 import { PrismaClient, OrderType, Delivery, Subscription, Payment } from '@prisma/client'
+import { Order } from './orders-updater'
 
 export class Database extends PrismaClient {
+  findOrderById(id: string) {
+    return this.order.findUnique({
+      where: { id }
+    })
+  }
+
+  addOrder(order: Order) {
+    return this.order.create({
+      data: {
+        id: order._id,
+        description: order.description,
+        amount: order.amount,
+        fee: order.fee,
+        botFee: order.bot_fee,
+        communityFee: order.community_fee,
+        status: order.status,
+        type: order.type,
+        fiatAmount: order.fiat_amount,
+        minAmount: order.min_amount,
+        maxAmount: order.max_amount,
+        fiatCode: order.fiat_code,
+        paymentMethod: order.payment_method,
+        takenAt: order.taken_at,
+        tgChatId: order.tg_chat_id,
+        tgOrderMessage: order.tg_order_message,
+        tgChannelMessage1: order.tg_channel_message1,
+        priceFromApi: order.price_from_api,
+        priceMargin: order.price_margin,
+        communityId: order.community_id,
+        isPublic: order.is_public,
+        createdAt: order.created_at
+      }
+    })
+  }
 
   async findUserById(id: number) {
     return this.user.findUnique({

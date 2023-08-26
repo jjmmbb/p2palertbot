@@ -54,9 +54,10 @@ const main = async () => {
       }
     })
   }
-
+  // @ts-ignore
   const i18n = new I18n<BotContext>(i18nConfig)
   const bot = new Telegraf<BotContext>(BOT_TOKEN)
+  // @ts-ignore
   bot.use(i18n.middleware())
   bot.start(async (ctx) => {
     ctx.update.message.chat.id

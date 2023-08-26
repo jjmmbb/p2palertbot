@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios'
 import { User } from '@prisma/client'
 import { Database } from './db'
 import { logger } from './logger'
+import { NostrNotifier } from './nostr'
 
 // 3 minutes
 const INTERVAL = 3 * 60 * 1e3
@@ -9,9 +10,26 @@ const INTERVAL = 3 * 60 * 1e3
 export interface Order {
   _id: string,
   description: string
+  amount: number,
+  fee: number,
+  bot_fee: number,
+  community_fee: number,
+  status: string,
+  type: string,
+  fiat_amount: number,
+  min_amount?: number,
+  max_amount?: number,
+  fiat_code: string,
+  payment_method: string,
+  taken_at?: string,
+  tg_chat_id?: string,
+  tg_order_message?: string,
   tg_channel_message1: string,
+  price_from_api: boolean,
+  price_margin: number,
   community_id: string,
-  fiat_code: string
+  is_public: boolean,
+  created_at: string
 }
 
 export type OnNotificationEvent =
@@ -22,11 +40,13 @@ export class OrdersUpdater {
   private onNotification: OnNotificationEvent | undefined
   private id: NodeJS.Timer | null = null
   private http: AxiosInstance
+  private nostr: NostrNotifier
 
   constructor() {
     this.http = axios.create({
       baseURL: process.env.LNP2PBOT_BASE_URL
     })
+    this.nostr = new NostrNotifier
   }
 
   start(onNotification: OnNotificationEvent) {
@@ -35,6 +55,7 @@ export class OrdersUpdater {
   }
 
   updateOrders = async () => {
+    logger.info('🔄 Updating orders')
     try {
       const resp = await this.http.get('/orders')
       const { data } = resp
@@ -86,6 +107,14 @@ export class OrdersUpdater {
           }
         }
         logger.info(`user: ${user.id}, telegram: ${user.telegramId}, 📝:${alerts.length}, 📢:${notificationCounter}, 🗑️: ${discardedNotificationCounter}`)
+      }
+      // Adding new orders and sending them as nostr events
+      for (const order of orders) {
+        const exists = await this.db.findOrderById(order._id)
+        if (!exists) {
+          await this.db.addOrder(order)
+          this.nostr.notify(order)
+        }
       }
     } catch(err) {
       console.error('Error while trying to fetch orders. Err: ', err)
