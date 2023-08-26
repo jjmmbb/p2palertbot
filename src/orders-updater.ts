@@ -4,8 +4,11 @@ import { Database } from './db'
 import { logger } from './logger'
 import { NostrNotifier } from './nostr'
 
-// 3 minutes
-const INTERVAL = 3 * 60 * 1e3
+// Interval between two order updates in milliseconds
+const ORDER_UPDATE_INTERVAL = 3 * 60 * 1e3
+
+// Minimum interval between two nostr notifications in milliseconds
+const MIN_NOSTR_PUBLICATION_INTERVAL = 500
 
 export interface Order {
   _id: string,
@@ -41,6 +44,8 @@ export class OrdersUpdater {
   private id: NodeJS.Timer | null = null
   private http: AxiosInstance
   private nostr: NostrNotifier
+  private orderQueue: Order[] = []
+  private isProcessing: boolean = false
 
   constructor() {
     this.http = axios.create({
@@ -51,11 +56,28 @@ export class OrdersUpdater {
 
   start(onNotification: OnNotificationEvent) {
     this.onNotification = onNotification
-    this.id = setInterval(this.updateOrders, INTERVAL)
+    this.id = setInterval(this.updateOrders, ORDER_UPDATE_INTERVAL)
+  }
+
+  processQueue = async () => {
+    if (this.isProcessing) {
+      logger.warning('⚠️ Queue is already being processed')
+      return
+    }
+    this.isProcessing = true
+
+    while (this.orderQueue.length > 0) {
+      const order = this.orderQueue.shift()
+      if (order) {
+        this.nostr.notify(order)
+        await new Promise(resolve => setTimeout(resolve, MIN_NOSTR_PUBLICATION_INTERVAL))
+      }
+    }
+    this.isProcessing = false
   }
 
   updateOrders = async () => {
-    logger.info('🔄 Updating orders')
+    logger.debug('🔄 Updating orders')
     try {
       const resp = await this.http.get('/orders')
       const { data } = resp
@@ -101,7 +123,7 @@ export class OrdersUpdater {
                 await this.onNotification(user.id, alert.id, order)
                 notificationCounter++
               } else {
-                logger.warn('Not issuing notification because callback is undefined')
+                logger.warning('Not issuing notification because callback is undefined')
               }
             }
           }
@@ -113,7 +135,8 @@ export class OrdersUpdater {
         const exists = await this.db.findOrderById(order._id)
         if (!exists) {
           await this.db.addOrder(order)
-          this.nostr.notify(order)
+          this.orderQueue.push(order)
+          await this.processQueue()
         }
       }
     } catch(err) {
