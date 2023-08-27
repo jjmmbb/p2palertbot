@@ -20,7 +20,11 @@ export class NostrNotifier {
         logger.info(`🔌 connected to relay: ${relay.url}`)
       })
       this.pool.on('ok', async (relay: any, id: string, accepted: boolean, msg: string) => {
-        logger.info(`📡 got an ok event. id: ${id}, accepted: ${accepted}, msg: ${msg}, relay: ${relay.url}`)
+        msg = `📡 got an ok event. id: ${id}, accepted: ${accepted}, relay: ${relay.url}, msg: ${msg}`
+        if (accepted)
+          logger.info(msg)
+        else
+          logger.warning(msg)
       })
     }
   }
@@ -47,7 +51,7 @@ export class NostrNotifier {
     event.created_at = Math.floor(Date.now() / 1000)
     event.content = order.description
     const signedEvent = finishEvent(event, privateKey)
-    logger.info(signedEvent)
+    logger.debug(signedEvent)
 
     await this.pool.send(['EVENT', signedEvent])
   }

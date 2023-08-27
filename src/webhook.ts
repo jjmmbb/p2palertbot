@@ -107,13 +107,13 @@ export class WebhookListener {
             const subscription: Subscription = payment.subscription
             this.callback(payment.id, subscription.userId, true)
           } else {
-            logger.warn(`could not find payment in database. payment hash: ${paymentHash}`)
+            logger.warning(`could not find payment in database. payment hash: ${paymentHash}`)
           }
         } else {
           logger.info(`payment ${paymentHash} is still pending`)
         }
       } else {
-        logger.warn(
+        logger.warning(
           'Error trying to fetch payment state. body: ', resp.data
         )
       }

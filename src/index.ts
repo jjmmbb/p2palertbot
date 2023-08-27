@@ -143,7 +143,7 @@ const main = async () => {
           await bot.telegram.sendMessage(user.chatId.toString(), msg, {parse_mode: 'HTML'})
           await db.addDelivery(userId, alertId, order._id)
         } else {
-          logger.warn(`Not notifying user with id ${userId}. user: `, user, ', bot.telegram: ', bot.telegram)
+          logger.warning(`Not notifying user with id ${userId}. user: `, user, ', bot.telegram: ', bot.telegram)
         }
         resolve()  
       } catch(err) {

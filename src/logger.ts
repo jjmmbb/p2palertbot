@@ -1,5 +1,5 @@
 import * as winston from 'winston'
-const { combine, timestamp, json, colorize, cli, printf } = winston.format;
+const { combine, timestamp, colorize, cli, ms, printf } = winston.format;
 
 /**
  * syslog levels
@@ -16,6 +16,17 @@ const { combine, timestamp, json, colorize, cli, printf } = winston.format;
 }
 */
 
+const colors = {
+  emerg: 'red',
+  alert: 'red',
+  crit: 'red',
+  error: 'red',
+  warning: 'yellow',
+  notice: 'green',
+  info: 'blue',
+  debug: 'magenta'
+}
+
 export const logger = winston.createLogger({
   levels: winston.config.syslog.levels,
   transports: [
@@ -23,9 +34,13 @@ export const logger = winston.createLogger({
       level: process.env.LOG_LEVEL_CLI || 'info',
       format: combine(
         colorize({ all: true }),
+        ms(),
         timestamp(),
-        cli(),
-        printf((info) => `[${info.timestamp}] ${info.level}:${info.message}`)
+        cli({ colors, all: true }),
+        printf((info) => {
+          const msg = info.message.replace('undefined', '')
+          return `[${info.timestamp}] ${info.level}:${msg} [${info.ms}]`
+        })
       )
     }),
     new winston.transports.File({

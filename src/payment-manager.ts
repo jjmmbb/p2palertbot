@@ -59,7 +59,7 @@ export class LnbitsPaymentManager extends AxiosClient{
             logger.info(`payment ${paymentHash} is still pending`)
           }
         } else {
-          logger.warn(
+          logger.warning(
             'Error trying to fetch payment state. body: ', resp.data
           )
         }
