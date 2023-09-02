@@ -44,7 +44,7 @@ export class OrdersUpdater {
   private id: NodeJS.Timer | null = null
   private http: AxiosInstance
   private nostr: NostrNotifier
-  private orderQueue: Order[] = []
+  private orderPublicationQueue: Order[] = []
   private isProcessing: boolean = false
 
   constructor() {
@@ -66,8 +66,8 @@ export class OrdersUpdater {
     }
     this.isProcessing = true
 
-    while (this.orderQueue.length > 0) {
-      const order = this.orderQueue.shift()
+    while (this.orderPublicationQueue.length > 0) {
+      const order = this.orderPublicationQueue.shift()
       if (order) {
         this.nostr.notify(order)
         await new Promise(resolve => setTimeout(resolve, MIN_NOSTR_PUBLICATION_INTERVAL))
@@ -82,60 +82,41 @@ export class OrdersUpdater {
       const resp = await this.http.get('/orders')
       const { data } = resp
       const orders: Order[] = data
-      const users = await this.db.findAllUsers()
-      for (const user of users) {
-        let notificationCounter = 0
-        let discardedNotificationCounter = 0
-        // Checking if user's payment is up to date
-        const isSubscribed = await this.checkUserSubscription(user)
-        logger.info(`user: ${user.id}, subscribed: ${isSubscribed}`)
-        if (!isSubscribed) {
-          continue
-        }
-        // Fetching all alerts of a user
-        const alerts = await this.db.findAlertsByUser(user.id)
-        for (const alert of alerts) {
-          const filteredOrders = orders.filter((o: any) => {
-            if (o.fiat_code.toUpperCase() !== alert.currency.toUpperCase()) {
-              return false
-            }
-            if (o.type.toUpperCase() !== alert.orderType.toUpperCase()) {
-              return false
-            }
-            if (!o.price_from_api) {
-              return false
-            }
-            if (o.type.toUpperCase() === 'SELL') {
-              return o.price_margin <= alert.priceDelta
-            } else {
-              return o.price_margin >= alert.priceDelta
-            }
-          })
-          for(const order of filteredOrders) {
-            const delivery = await this.db.findDelivery(user.id, alert.id, order._id)
-            if (delivery !== null) {
-              discardedNotificationCounter++
-              // The user was already notified of this order
-              continue
-            } else {
-              // Notify user & record delivery
-              if (this.onNotification) {
-                await this.onNotification(user.id, alert.id, order)
-                notificationCounter++
-              } else {
-                logger.warning('Not issuing notification because callback is undefined')
-              }
-            }
-          }
-        }
-        logger.info(`user: ${user.id}, telegram: ${user.telegramId}, 📝:${alerts.length}, 📢:${notificationCounter}, 🗑️: ${discardedNotificationCounter}`)
-      }
       // Adding new orders and sending them as nostr events
       for (const order of orders) {
         const exists = await this.db.findOrderById(order._id)
         if (!exists) {
+          // Adds order to the database
           await this.db.addOrder(order)
-          this.orderQueue.push(order)
+
+          // Checks whether it triggers some alerts
+          const alerts = await this.db.findAlertsByOrder(order)
+          for (const alert of alerts) {
+            const user = await this.db.findUserById(alert.userId)
+            if (user) {
+              const isSubscribed = await this.checkUserSubscription(user)
+              if (!isSubscribed) {
+                logger.info(`😔 User ${user.id} is not subscribed, alert not delivered`)
+                continue
+              }
+              const delivery = await this.db.findDelivery(user.id, alert.id, order._id)
+              if (delivery !== null) {
+                logger.info(`😕 User ${user.id} was already notified of this order, alert not delivered`)
+                continue
+              }
+              if (this.onNotification) {
+                logger.info(`📣 Alerting user ${user.id} | Alert ${alert.id} triggered by order ${order._id}, alert: [currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}], order: [currency: ${order.fiat_code}, delta: ${order.price_margin}, type: ${order.type}]`)
+                this.onNotification(user.id, alert.id, order)
+              } else {
+                logger.warning('⚠️ Not issuing notification because callback is undefined')
+              }
+            } else {
+              logger.warning(`⚠️ User ${alert.userId} not found, alert not delivered`)
+            }
+          }
+
+          // Adding order to publication queue
+          this.orderPublicationQueue.push(order)
           await this.processQueue()
         }
       }

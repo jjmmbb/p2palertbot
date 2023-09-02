@@ -96,6 +96,24 @@ export class Database extends PrismaClient {
     })
   }
 
+  /**
+   * Finds all the alerts that a specific order would trigger
+   * @param order - The new order
+   */
+  async findAlertsByOrder(order: Order) {
+    const whereInput = {
+      currency: order.fiat_code.toUpperCase(),
+      orderType: order.type.toUpperCase() === OrderType.BUY ? OrderType.BUY : OrderType.SELL,
+      priceDelta: {}
+    }
+    if (order.type === OrderType.BUY) {
+      whereInput.priceDelta = { gte: order.price_margin }
+    } else {
+      whereInput.priceDelta = { lte: order.price_margin }
+    }
+    return this.alert.findMany({ where: whereInput })
+  }
+
   async findAlertById(id: number) {
     return this.alert.findUnique({
       where: { id }
