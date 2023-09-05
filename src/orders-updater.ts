@@ -91,6 +91,9 @@ export class OrdersUpdater {
 
           // Checks whether it triggers some alerts
           const alerts = await this.db.findAlertsByOrder(order)
+          if (alerts.length > 0) {
+            logger.info(`🆕 New order ${order._id} triggered ${alerts.length} alerts`)
+          }
           for (const alert of alerts) {
             const user = await this.db.findUserById(alert.userId)
             if (user) {
@@ -105,7 +108,9 @@ export class OrdersUpdater {
                 continue
               }
               if (this.onNotification) {
-                logger.info(`📣 Alerting user ${user.id} | Alert ${alert.id} triggered by order ${order._id}, alert: [currency: ${alert.currency}, delta: ${alert.priceDelta}, type: ${alert.orderType}], order: [currency: ${order.fiat_code}, delta: ${order.price_margin}, type: ${order.type}]`)
+                const alertSection = `[currency: ${alert.currency.toUpperCase()}, delta: ${alert.priceDelta}, type: ${alert.orderType.toUpperCase() === 'BUY' ? '🟢' : '🔴'}]`
+                const orderSection = `[currency: ${order.fiat_code}, delta: ${order.price_margin}, type: ${order.type.toUpperCase() === 'BUY' ? '🟢' : '🔴'}]`
+                logger.info(`📣 Alerting user ${user.id} | Alert ${alert.id} triggered by order ${order._id}, alert: ${alertSection}, order: ${orderSection}`)
                 this.onNotification(user.id, alert.id, order)
               } else {
                 logger.warning('⚠️ Not issuing notification because callback is undefined')

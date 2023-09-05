@@ -106,10 +106,10 @@ export class Database extends PrismaClient {
       orderType: order.type.toUpperCase() === OrderType.BUY ? OrderType.BUY : OrderType.SELL,
       priceDelta: {}
     }
-    if (order.type === OrderType.BUY) {
-      whereInput.priceDelta = { gte: order.price_margin }
-    } else {
+    if (order.type.toUpperCase() === OrderType.BUY) {
       whereInput.priceDelta = { lte: order.price_margin }
+    } else {
+      whereInput.priceDelta = { gte: order.price_margin }
     }
     return this.alert.findMany({ where: whereInput })
   }
