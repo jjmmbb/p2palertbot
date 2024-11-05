@@ -1,7 +1,7 @@
 welcome = Bienvenido usuario nuevo!
 welcome_back = Bienvenido de vuelta!
 no_bots = Perdona, pero no aceptamos bots aqui
-help = Arturito te va a ayudar a colocar alertas automáticos que te avisen de oportunidades de compra y venta que te puedan parecer atractivas.
+help = Oracle te va a ayudar a colocar alertas automáticos que te avisen de oportunidades de compra y venta que te puedan parecer atractivas.
 edit_alert_placeholder = Metodo no implementado. Por ahora, puedes usar el addalert con la misma moneda y tipo de órden, el resultado será el mismo.
 not_introduced = Vaya esto es raro, parece que no nos han presentado aun!
 start_prompt = Por favor escribe <code>/start</code>
@@ -45,11 +45,9 @@ alert_added_without_paid_subscription = El alerta fue creado, pero tu suscripci�
 info = <b>Suscripciones:</b> { $subscriptionCount }, ({ $activeCount } active)
   <b>Total pagado:</b> { $totalPaid } sats
   <b>Alertas:</b> { $alertsCount }
-about = Arturito Bot v{ $version }.
+about = Oracle Bot v{ $version }.
 
-  El Bot Arturito funciona en conjunto con el LNP2PBot, su propósito es permitirle recibir una notificación cada vez que se presente una oportunidad de intercambio interesante. Supongamos que alguien tiene una gran necesidad de efectivo y decide que necesita vender algunos sats. Para que esta persona venda más rápido, es muy probable que esté dispuesta a ofrecer un descuento en el precio. Sin embargo, eso es solo parte de la historia, ya que para que esta transacción se complete rápidamente, lo ideal sería que los compradores potenciales fueran notificados de esta venta con un descuento. Actualmente todos los pedidos nuevos se publican en el canal principal o dentro de las comunidades, pero ¿no sería mejor si pudiera recibir solo notificaciones especialmente diseñadas para las ofertas comerciales que realmente te interesan? Pues esto es lo que hace Arturito. Tu le describes cómo se ve un pedido atractivo para ti y el te avisará cuando se publique algo así.
-
-  Este Bot se encuentra en alfa, por favor reportar cualquier bug al creador @bilthon
+  El Bot Oracle funciona en conjunto con el LNP2PBot, su propósito es permitirle recibir una notificación cada vez que se presente una oportunidad de intercambio interesante. Supongamos que alguien tiene una gran necesidad de efectivo y decide que necesita vender algunos sats. Para que esta persona venda más rápido, es muy probable que esté dispuesta a ofrecer un descuento en el precio. Sin embargo, eso es solo parte de la historia, ya que para que esta transacción se complete rápidamente, lo ideal sería que los compradores potenciales fueran notificados de esta venta con un descuento. Actualmente todos los pedidos nuevos se publican en el canal principal o dentro de las comunidades, pero ¿no sería mejor si pudiera recibir solo notificaciones especialmente diseñadas para las ofertas comerciales que realmente te interesan? Pues esto es lo que hace Oracle. Tu le describes cómo se ve un pedido atractivo para ti y el te avisará cuando se publique algo así.
 help_subscription = Tienes que especificar la duración en días de la suscripción.
   Ej: <code>/subscribe 10</code> te crea una suscripción por 10 días.
   El costo por día es { $costPerDay } satoshis.
