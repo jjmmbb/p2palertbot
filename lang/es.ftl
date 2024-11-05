@@ -2,6 +2,15 @@ welcome = Bienvenido usuario nuevo!
 welcome_back = Bienvenido de vuelta!
 no_bots = Perdona, pero no aceptamos bots aqui
 help = Oracle te va a ayudar a colocar alertas automáticos que te avisen de oportunidades de compra y venta que te puedan parecer atractivas.
+  Lista de comandos válidos:
+    /addalert -> Crear alerta
+    /listalerts -> Listar alertas creados
+    /editalert -> Editar una alerta
+    /cancelalert -> Cancelar una alerta
+    /cancelall -> Cancelar todos los alertas
+    /subscribe -> Suscribir a alertas
+    /info -> Información
+    /about -> Un poco más sobre el Oracle
 edit_alert_placeholder = Metodo no implementado. Por ahora, puedes usar el addalert con la misma moneda y tipo de órden, el resultado será el mismo.
 not_introduced = Vaya esto es raro, parece que no nos han presentado aun!
 start_prompt = Por favor escribe <code>/start</code>

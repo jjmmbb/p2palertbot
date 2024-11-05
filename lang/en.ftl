@@ -1,7 +1,16 @@
 welcome = Welcome new user!
 welcome_back = Welcome back known user!
 no_bots = Sorry, we do not serve bots here
-help = Oracle will allow you to set automated alerts to trading opportunities you might find interesting
+help = Oracle will allow you to set automated alerts to trading opportunities you might find interesting.
+  List of valid commands:
+    /addalert -> Create alert
+    /listalerts -> List created alerts
+    /editalert -> Edit an alert
+    /cancelalert -> Cancel an alert
+    /cancelall -> Cancel all alerts
+    /subscribe -> Subscribe to alerts
+    /info -> Information
+    /about -> A bit more about Oracle
 edit_alert_placeholder = Method not implemented, for now you can just repeat the addalert
 not_introduced = This is weird, it seems we have not been introduced yet!
 start_prompt = Please type <code>/start</code>
