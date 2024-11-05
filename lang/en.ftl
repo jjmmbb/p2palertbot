@@ -1,7 +1,7 @@
 welcome = Welcome new user!
 welcome_back = Welcome back known user!
 no_bots = Sorry, we do not serve bots here
-help = Arturito will allow you to set automated alerts to trading opportunities you might find interesting
+help = Oracle will allow you to set automated alerts to trading opportunities you might find interesting
 edit_alert_placeholder = Method not implemented, for now you can just repeat the addalert
 not_introduced = This is weird, it seems we have not been introduced yet!
 start_prompt = Please type <code>/start</code>
@@ -45,11 +45,9 @@ alert_added_without_paid_subscription = The alert was created, but your subscrip
 info = <b>Subscriptions:</b> { $subscriptionCount }, ({ $activeCount } active)
   <b>Total paid:</b> { $totalPaid } sats
   <b>Total alerts:</b> { $alertsCount }
-about = Arturito Bot v { $version }.
+about = Oracle Bot v { $version }.
 
-  The Arturito Bot works in tandem with the LNP2PBot, its purpose is to allow you to get notified whenever an interesting trade opportunity takes place. Suppose someone is in dire need of cash and decides he/she needs to sell some sats. In order for this person to sell faster, it's very likely that he/she will be willing to offer a discount in price. That however is just part of the story, as in order for this trade to be completed quickly potential buyers should ideally be notified of this sell at a discount. Sure, all new orders are published in the main channel or within the communities, but wouldn't it be better if you could receive only specially tailored notifications for trade offers you're actually interested in? Well this is what Arturito does. You describe to it what an attractive order looks like for you, and it will let you know when something like that is published.
-
-  This Bot is in alpha, please report any bugs to the creator @bilthon
+  The Oracle Bot works in tandem with the LNP2PBot, its purpose is to allow you to get notified whenever an interesting trade opportunity takes place. Suppose someone is in dire need of cash and decides he/she needs to sell some sats. In order for this person to sell faster, it's very likely that he/she will be willing to offer a discount in price. That however is just part of the story, as in order for this trade to be completed quickly potential buyers should ideally be notified of this sell at a discount. Sure, all new orders are published in the main channel or within the communities, but wouldn't it be better if you could receive only specially tailored notifications for trade offers you're actually interested in? Well this is what Oracle does. You describe to it what an attractive order looks like for you, and it will let you know when something like that is published.
 help_subscription = You must specify a subscription duration per day.
   Ex: <code>/subscribe 10</code> for a 10 day subscription.
   The cost per day is { $costPerDay } sats
