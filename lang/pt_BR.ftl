@@ -1,7 +1,7 @@
 welcome = Bem-vindo(a) novo(a) usuário(a)!
 welcome_back = Bem-vindo(a) de volta, usuário(a) conhecido(a)!
 no_bots = Desculpe, não atendemos bots aqui
-help = Arturito permitirá que você configure alertas automáticos para oportunidades de negociação que possa achar interessantes
+help = Oracle permitirá que você configure alertas automáticos para oportunidades de negociação que possa achar interessantes
 edit_alert_placeholder = Método não implementado, por enquanto você pode apenas repetir o addalert
 not_introduced = Isso é estranho, parece que ainda não fomos apresentados!
 start_prompt = Por favor, digite <code>/start</code>
@@ -45,11 +45,9 @@ alert_added_without_paid_subscription = O alerta foi criado, mas sua assinatura 
 info = <b>Assinaturas:</b> { $subscriptionCount }, ({ $activeCount } ativas)
   <b>Total pago:</b> { $totalPaid } sats
   <b>Total de alertas:</b> { $alertsCount }
-about = Arturito Bot v { $version }.
+about = Oracle Bot v { $version }.
 
-  O Bot Arturito trabalha em conjunto com o LNP2PBot, permitindo que você seja notificado sempre que surgir uma oportunidade de negociação interessante. Suponha que alguém precise urgentemente de dinheiro e decida vender alguns sats. Para vender mais rápido, é muito provável que essa pessoa esteja disposta a oferecer um desconto no preço. No entanto, essa é apenas parte da história, pois para que essa negociação seja concluída rapidamente, os compradores potenciais devem idealmente ser notificados dessa venda com desconto. Certamente, todas as novas ordens são publicadas no canal principal ou dentro das comunidades, mas não seria melhor se você pudesse receber apenas notificações especialmente personalizadas para ofertas de negociação que realmente interessam a você? Bem, é isso que o Arturito faz. Você descreve para ele como é uma ordem atraente para você, e ele informará quando algo assim for publicado.
-
-  Este Bot está em alpha, por favor, relate qualquer bug ao criador @bilthon
+  O Bot Oracle trabalha em conjunto com o LNP2PBot, permitindo que você seja notificado sempre que surgir uma oportunidade de negociação interessante. Suponha que alguém precise urgentemente de dinheiro e decida vender alguns sats. Para vender mais rápido, é muito provável que essa pessoa esteja disposta a oferecer um desconto no preço. No entanto, essa é apenas parte da história, pois para que essa negociação seja concluída rapidamente, os compradores potenciais devem idealmente ser notificados dessa venda com desconto. Certamente, todas as novas ordens são publicadas no canal principal ou dentro das comunidades, mas não seria melhor se você pudesse receber apenas notificações especialmente personalizadas para ofertas de negociação que realmente interessam a você? Bem, é isso que o Oracle faz. Você descreve para ele como é uma ordem atraente para você, e ele informará quando algo assim for publicado.
 help_subscription = Você deve especificar uma duração de assinatura por dia.
   Ex: <code>/subscribe 10</code> para uma assinatura de 10 dias.
   O custo por dia é de { $costPerDay } sats
