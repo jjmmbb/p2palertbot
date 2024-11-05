@@ -1,7 +1,16 @@
 welcome = Bem-vindo(a) novo(a) usuário(a)!
 welcome_back = Bem-vindo(a) de volta, usuário(a) conhecido(a)!
 no_bots = Desculpe, não atendemos bots aqui
-help = Oracle permitirá que você configure alertas automáticos para oportunidades de negociação que possa achar interessantes
+help = Oracle permitirá que você configure alertas automáticos para oportunidades de negociação que possa achar interessantes.
+  Lista de comandos válidos:
+    /addalert -> Criar alerta
+    /listalerts -> Listar alertas criados
+    /editalert -> Editar um alerta
+    /cancelalert -> Cancelar um alerta
+    /cancelall -> Cancelar todos os alertas
+    /subscribe -> Assinar alertas
+    /info -> Informações
+    /about -> Um pouco mais sobre o Oracle
 edit_alert_placeholder = Método não implementado, por enquanto você pode apenas repetir o addalert
 not_introduced = Isso é estranho, parece que ainda não fomos apresentados!
 start_prompt = Por favor, digite <code>/start</code>
